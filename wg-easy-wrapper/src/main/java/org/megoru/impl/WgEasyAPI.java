@@ -2,40 +2,78 @@ package org.megoru.impl;
 
 import org.jetbrains.annotations.Nullable;
 import org.megoru.entity.api.Clients;
-import org.megoru.entity.api.NoContent;
+import org.megoru.entity.api.Create;
+import org.megoru.entity.api.Status;
 import org.megoru.entity.api.Session;
 import org.megoru.io.UnsuccessfulHttpException;
 
 public interface WgEasyAPI {
 
-    NoContent disableClient(String userId) throws UnsuccessfulHttpException;
+    /**
+     * Create user
+     *
+     * @param name - The username must be unique! If it is non-unique. When searching for userId, there will be 2 or more values.
+     * @return {@link Create}
+     */
+    Create createClient(String name) throws UnsuccessfulHttpException;
 
-    NoContent enableClient(String userId) throws UnsuccessfulHttpException;
+    /**
+     * Update user peer address
+     *
+     * @param userId - it`s userId
+     * @return {@link Status}
+     */
+    Status updateClientAddress(String userId, String address) throws UnsuccessfulHttpException;
 
-    NoContent deleteClient(String userId) throws UnsuccessfulHttpException;
+    /**
+     * Disable user peer
+     *
+     * @param userId - it`s userId
+     * @return {@link Status}
+     */
+    Status disableClient(String userId) throws UnsuccessfulHttpException;
+
+
+    /**
+     * Enable user peer
+     *
+     * @param userId - it`s userId
+     * @return {@link Status}
+     */
+    Status enableClient(String userId) throws UnsuccessfulHttpException;
+
+    /**
+     * Delete user peer
+     *
+     * @param userId - it`s userId
+     * @return {@link Status}
+     */
+    Status deleteClient(String userId) throws UnsuccessfulHttpException;
 
     /**
      * @param userId - it`s userId
-     * @param name - The username must be unique! If it is non-unique. When searching for userId, there will be 2 or more values.
-     * @return {@link NoContent}
+     * @param name   - The username must be unique! If it is non-unique. When searching for userId, there will be 2 or more values.
+     * @return {@link Status}
      */
-    NoContent renameClient(String userId, String name)  throws UnsuccessfulHttpException;
+    Status renameClient(String userId, String name) throws UnsuccessfulHttpException;
 
     /**
-     * @throws IllegalStateException - if more than 1 user
      * @return {@link Clients}
+     * @throws IllegalStateException - if more than 1 user
      */
     @Nullable
     Clients getClientId(String name) throws UnsuccessfulHttpException, IllegalStateException;
 
     /**
      * List of Clients
+     *
      * @return {@link Clients[]}
      */
     Clients[] getClients() throws UnsuccessfulHttpException;
 
     /**
      * Get current Session
+     *
      * @return {@link Session}
      */
     Session getSession() throws UnsuccessfulHttpException;

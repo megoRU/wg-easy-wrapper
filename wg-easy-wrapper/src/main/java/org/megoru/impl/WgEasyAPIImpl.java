@@ -2,7 +2,6 @@ package org.megoru.impl;
 
 import com.google.gson.*;
 import okhttp3.HttpUrl;
-import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.CookieStore;
@@ -21,9 +20,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.megoru.entity.ErrorResponse;
 import org.megoru.entity.ErrorResponseToMany;
-import org.megoru.entity.api.Clients;
-import org.megoru.entity.api.NoContent;
-import org.megoru.entity.api.Session;
+import org.megoru.entity.api.*;
 import org.megoru.io.DefaultResponseTransformer;
 import org.megoru.io.ResponseTransformer;
 import org.megoru.io.UnsuccessfulHttpException;
@@ -34,7 +31,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 import java.util.Arrays;
-import java.util.stream.Collectors;
 
 public class WgEasyAPIImpl implements WgEasyAPI {
 
@@ -95,17 +91,78 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public NoContent disableClient(String userId) throws UnsuccessfulHttpException {
-        return null;
+    public Create createClient(String name) throws UnsuccessfulHttpException {
+        HttpUrl url = baseUrl.newBuilder()
+                .addPathSegment("api")
+                .addPathSegment("wireguard")
+                .addPathSegment("client")
+                .build();
+
+        JSONObject json = new JSONObject();
+
+        try {
+            json.put("name", name);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return post(url, json, new DefaultResponseTransformer<>(Create.class, gson));
     }
 
     @Override
-    public NoContent enableClient(String userId) throws UnsuccessfulHttpException {
-        return null;
+    public Status updateClientAddress(String userId, String address) throws UnsuccessfulHttpException {
+        HttpUrl url = baseUrl.newBuilder()
+                .addPathSegment("api")
+                .addPathSegment("wireguard")
+                .addPathSegment("client")
+                .addPathSegment(userId)
+                .addPathSegment("address")
+                .build();
+
+        JSONObject json = new JSONObject();
+
+
+        try {
+            json.put("address ", address);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return put(url, json, new DefaultResponseTransformer<>(Status.class, gson));
     }
 
     @Override
-    public NoContent deleteClient(String userId) throws UnsuccessfulHttpException {
+    public Status disableClient(String userId) throws UnsuccessfulHttpException {
+        HttpUrl url = baseUrl.newBuilder()
+                .addPathSegment("api")
+                .addPathSegment("wireguard")
+                .addPathSegment("client")
+                .addPathSegment(userId)
+                .addPathSegment("disable")
+                .build();
+
+        JSONObject json = new JSONObject();
+
+        return post(url, json, new DefaultResponseTransformer<>(Status.class, gson));
+    }
+
+    @Override
+    public Status enableClient(String userId) throws UnsuccessfulHttpException {
+        HttpUrl url = baseUrl.newBuilder()
+                .addPathSegment("api")
+                .addPathSegment("wireguard")
+                .addPathSegment("client")
+                .addPathSegment(userId)
+                .addPathSegment("enable")
+                .build();
+
+        JSONObject json = new JSONObject();
+
+        return post(url, json, new DefaultResponseTransformer<>(Status.class, gson));
+    }
+
+    @Override
+    public Status deleteClient(String userId) throws UnsuccessfulHttpException {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
@@ -113,16 +170,28 @@ public class WgEasyAPIImpl implements WgEasyAPI {
                 .addPathSegment(userId)
                 .build();
 
-        return delete(url, new DefaultResponseTransformer<>(NoContent.class, gson));
+        return delete(url, new DefaultResponseTransformer<>(Status.class, gson));
     }
 
+    //TODO: Если без json можно сломать веб UI или без name
     @Override
-    public NoContent renameClient(String userId, String name) throws UnsuccessfulHttpException {
+    public Status renameClient(String userId, String name) throws UnsuccessfulHttpException {
+        HttpUrl url = baseUrl.newBuilder()
+                .addPathSegment("api")
+                .addPathSegment("wireguard")
+                .addPathSegment("client")
+                .addPathSegment(userId)
+                .addPathSegment("name")
+                .build();
 
+        JSONObject json = new JSONObject();
 
-
-
-        return null;
+        try {
+            json.put("name", name);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return put(url, json, new DefaultResponseTransformer<>(Status.class, gson));
     }
 
     @Override
@@ -222,6 +291,16 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         return execute(request, responseTransformer);
     }
 
+    private <E> E put(HttpUrl url, JSONObject jsonBody, ResponseTransformer<E> responseTransformer) throws UnsuccessfulHttpException {
+        HttpPut request = new HttpPut(url.uri());
+        request.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+
+        HttpEntity stringEntity = new StringEntity(jsonBody.toString(), ContentType.APPLICATION_JSON);
+        request.setEntity(stringEntity);
+
+        return execute(request, responseTransformer);
+    }
+
     private void setCookie(Cookie cookies) {
         BasicCookieStore cookieStore = new BasicCookieStore();
         cookieStore.addCookie(cookies);
@@ -234,15 +313,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
             CloseableHttpResponse response = httpClient.execute(request);
 
             HttpEntity entity = response.getEntity();
-            String body;
-
-            if (entity != null) {
-                body = EntityUtils.toString(entity);
-            } else {
-                body = "{\n" +
-                        "  \"body\": \"No Content\"\n" +
-                        "}";
-            }
+            String body = EntityUtils.toString(entity);
 
             if (devMode) {
                 String status = String.format(
@@ -262,10 +333,13 @@ public class WgEasyAPIImpl implements WgEasyAPI {
                     return responseTransformer.transform(body);
                 }
                 case 401:
-                case 403:
-                case 404: {
+                case 403: {
                     ErrorResponse result = gson.fromJson(body, ErrorResponse.class);
                     throw new UnsuccessfulHttpException(response.getStatusLine().getStatusCode(), result.getError());
+                }
+                case 404: {
+                    ErrorNotFound errorNotFound = gson.fromJson(body, ErrorNotFound.class);
+                    throw new UnsuccessfulHttpException(response.getStatusLine().getStatusCode(), errorNotFound.getError());
                 }
                 case 429: {
                     ErrorResponseToMany result = gson.fromJson(body, ErrorResponseToMany.class);
