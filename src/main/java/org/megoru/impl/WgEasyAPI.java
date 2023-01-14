@@ -3,11 +3,32 @@ package org.megoru.impl;
 import org.jetbrains.annotations.Nullable;
 import org.megoru.entity.api.Clients;
 import org.megoru.entity.api.Create;
-import org.megoru.entity.api.Status;
 import org.megoru.entity.api.Session;
+import org.megoru.entity.api.Status;
 import org.megoru.io.UnsuccessfulHttpException;
 
+import java.io.File;
+
 public interface WgEasyAPI {
+
+
+    /**
+     * Get qr code config
+     *
+     * @param userId   - it`s userId
+     * @param fileName - file name without file extension
+     * @return {@link File}
+     */
+    File getQRCode(String userId, String fileName) throws UnsuccessfulHttpException;
+
+    /**
+     * Get user config
+     *
+     * @param userId   - it`s userId
+     * @param fileName - file name without file extension
+     * @return {@link File}
+     */
+    File getConfig(String userId, String fileName) throws UnsuccessfulHttpException;
 
     /**
      * Create user

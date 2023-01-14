@@ -25,8 +25,9 @@ import org.megoru.io.DefaultResponseTransformer;
 import org.megoru.io.ResponseTransformer;
 import org.megoru.io.UnsuccessfulHttpException;
 
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
@@ -88,6 +89,39 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         }).setPrettyPrinting().create();
 
         setSession();
+    }
+
+    @Override
+    public File getQRCode(String userId, String fileName) throws UnsuccessfulHttpException {
+        HttpUrl url = baseUrl.newBuilder()
+                .addPathSegment("api")
+                .addPathSegment("wireguard")
+                .addPathSegment("client")
+                .addPathSegment(userId)
+                .addPathSegment("qrcode.svg")
+                .build();
+
+        HttpGet request = new HttpGet(url.uri());
+        request.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+
+        return execute(request, fileName + ".svg");
+    }
+
+    @Override
+    public File getConfig(String userId, String fileName) throws UnsuccessfulHttpException {
+        //https://vpn.megoru.ru/api/wireguard/client/83e7877e-9eea-4695-823e-b729cddb5d8c/configuration
+        HttpUrl url = baseUrl.newBuilder()
+                .addPathSegment("api")
+                .addPathSegment("wireguard")
+                .addPathSegment("client")
+                .addPathSegment(userId)
+                .addPathSegment("configuration")
+                .build();
+
+        HttpGet request = new HttpGet(url.uri());
+        request.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+
+        return execute(request, fileName + ".conf");
     }
 
     @Override
@@ -305,6 +339,44 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         BasicCookieStore cookieStore = new BasicCookieStore();
         cookieStore.addCookie(cookies);
         httpClient = HttpClientBuilder.create().setDefaultCookieStore(cookieStore).build();
+    }
+
+    private File writeToFile(String text, String fileName) {
+        try {
+            int read;
+            File file = new File(fileName);
+            InputStream inputStream = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
+            final FileOutputStream fileOutputStream = new FileOutputStream(file);
+            while ((read = inputStream.read()) != -1) {
+                fileOutputStream.write(read);
+            }
+            fileOutputStream.flush();
+            fileOutputStream.close();
+
+            return file;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private File execute(HttpRequestBase request, String fileName) throws UnsuccessfulHttpException {
+        try {
+            CloseableHttpResponse response = httpClient.execute(request);
+
+            HttpEntity entity = response.getEntity();
+            String body = EntityUtils.toString(entity);
+
+            if (response.getStatusLine().getStatusCode() == 200) {
+                return writeToFile(body, fileName);
+            }
+
+            throw new UnsuccessfulHttpException(response.getStatusLine().getStatusCode(), "Client Not Found");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Nullable
