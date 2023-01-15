@@ -385,7 +385,10 @@ public class WgEasyAPIImpl implements WgEasyAPI {
             CloseableHttpResponse response = httpClient.execute(request);
 
             HttpEntity entity = response.getEntity();
-            String body = EntityUtils.toString(entity);
+            String body = "{}";
+            if (entity != null) {
+                 body = EntityUtils.toString(entity);
+            }
 
             if (devMode) {
                 String status = String.format(
