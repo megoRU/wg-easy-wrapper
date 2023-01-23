@@ -230,10 +230,10 @@ public class WgEasyAPIImpl implements WgEasyAPI {
 
     @Override
     @Nullable
-    public Clients getClientId(String name) throws UnsuccessfulHttpException, IllegalStateException {
-        Clients[] clients = Arrays.stream(getClients())
+    public Client getClientByName(String name) throws UnsuccessfulHttpException, IllegalStateException {
+        Client[] clients = Arrays.stream(getClients())
                 .filter(c -> c.getName().equals(name))
-                .toArray(Clients[]::new);
+                .toArray(Client[]::new);
 
         if (clients.length > 1)
             throw new IllegalStateException("Clients must be 1. Value: " + clients.length);
@@ -245,14 +245,26 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public Clients[] getClients() throws UnsuccessfulHttpException {
+    public @Nullable Client getClientById(String userId) throws UnsuccessfulHttpException, NullPointerException {
+        Client[] clients = Arrays.stream(getClients())
+                .filter(c -> c.getId().equals(userId))
+                .toArray(Client[]::new);
+
+        if (clients.length == 0)
+            throw new NullPointerException("Client not found");
+
+        return clients[0];
+    }
+
+    @Override
+    public Client[] getClients() throws UnsuccessfulHttpException {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
                 .addPathSegment("client")
                 .build();
 
-        return get(url, new DefaultResponseTransformer<>(Clients[].class, gson));
+        return get(url, new DefaultResponseTransformer<>(Client[].class, gson));
     }
 
     @Override

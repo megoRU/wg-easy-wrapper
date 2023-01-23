@@ -1,7 +1,7 @@
 package org.megoru.impl;
 
 import org.jetbrains.annotations.Nullable;
-import org.megoru.entity.api.Clients;
+import org.megoru.entity.api.Client;
 import org.megoru.entity.api.Create;
 import org.megoru.entity.api.Session;
 import org.megoru.entity.api.Status;
@@ -10,7 +10,6 @@ import org.megoru.io.UnsuccessfulHttpException;
 import java.io.File;
 
 public interface WgEasyAPI {
-
 
     /**
      * Get qr code config
@@ -54,7 +53,6 @@ public interface WgEasyAPI {
      */
     Status disableClient(String userId) throws UnsuccessfulHttpException;
 
-
     /**
      * Enable user peer
      *
@@ -79,18 +77,25 @@ public interface WgEasyAPI {
     Status renameClient(String userId, String name) throws UnsuccessfulHttpException;
 
     /**
-     * @return {@link Clients}
+     * @return {@link Client}
      * @throws IllegalStateException - if more than 1 user
      */
     @Nullable
-    Clients getClientId(String name) throws UnsuccessfulHttpException, IllegalStateException;
+    Client getClientByName(String name) throws UnsuccessfulHttpException, IllegalStateException;
+
+    /**
+     * @return {@link Client}
+     * @throws NullPointerException - if no user
+     */
+    @Nullable
+    Client getClientById(String userId) throws UnsuccessfulHttpException, NullPointerException;
 
     /**
      * List of Clients
      *
-     * @return {@link Clients[]}
+     * @return {@link Client[]}
      */
-    Clients[] getClients() throws UnsuccessfulHttpException;
+    Client[] getClients() throws UnsuccessfulHttpException;
 
     /**
      * Get current Session

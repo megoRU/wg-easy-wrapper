@@ -34,9 +34,9 @@ public class Main {
                 .domain("vpn.megoru.ru")
                 .build();
         try {
-            Clients[] clients = api.getClients();
+            Clients[] client = api.getClients();
 
-            for (Clients client : clients) {
+            for (Clients client : client) {
                 System.out.println(client.getId()); //139987fc-266a-45bb-b3c4-3e1d8d2e180c
                                                     // ...
             }

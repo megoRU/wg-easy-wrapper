@@ -2,7 +2,7 @@ package org.megoru.entity.api;
 
 import java.time.LocalDateTime;
 
-public class Clients {
+public class Client {
 
     private String id;
     private String name;
