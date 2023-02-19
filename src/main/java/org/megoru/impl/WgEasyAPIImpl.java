@@ -415,8 +415,16 @@ public class WgEasyAPIImpl implements WgEasyAPI {
             }
 
             switch (response.getStatusLine().getStatusCode()) {
-                case 200:
+                case 200: {
+                    if (body.equals("{}")) {
+                        body = "{\n" + "  \"status\": \"200\"\n" + "}";
+                    }
+                    return responseTransformer.transform(body);
+                }
                 case 204: {
+                    if (body.equals("{}")) {
+                        body = "{\n" + "  \"status\": \"204\"\n" + "}";
+                    }
                     return responseTransformer.transform(body);
                 }
                 case 401:
