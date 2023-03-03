@@ -2,6 +2,10 @@ package org.megoru.impl;
 
 import com.google.gson.*;
 import okhttp3.HttpUrl;
+import org.apache.batik.transcoder.Transcoder;
+import org.apache.batik.transcoder.TranscoderInput;
+import org.apache.batik.transcoder.TranscoderOutput;
+import org.apache.batik.transcoder.image.PNGTranscoder;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.CookieStore;
@@ -25,6 +29,7 @@ import org.megoru.io.DefaultResponseTransformer;
 import org.megoru.io.ResponseTransformer;
 import org.megoru.io.UnsuccessfulHttpException;
 
+import javax.imageio.ImageIO;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
@@ -104,7 +109,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         HttpGet request = new HttpGet(url.uri());
         request.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
 
-        return execute(request, fileName + ".svg");
+        return execute(request, fileName + ".svg", FileExtension.QR_CODE);
     }
 
     @Override
@@ -121,7 +126,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         HttpGet request = new HttpGet(url.uri());
         request.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
 
-        return execute(request, fileName + ".conf");
+        return execute(request, fileName + ".conf", FileExtension.CONFIG);
     }
 
     @Override
@@ -372,19 +377,42 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         return null;
     }
 
-    private File execute(HttpRequestBase request, String fileName) throws UnsuccessfulHttpException {
+    private File svgToPng(File file, String fileName) {
+        Transcoder t = new PNGTranscoder();
+        t.addTranscodingHint(PNGTranscoder.KEY_WIDTH, (float) 512);
+        t.addTranscodingHint(PNGTranscoder.KEY_HEIGHT, (float) 512);
+        try (FileInputStream inputStream = new FileInputStream(file)) {
+            TranscoderInput input = new TranscoderInput(inputStream);
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            TranscoderOutput output = new TranscoderOutput(outputStream);
+            t.transcode(input, output);
+            outputStream.flush();
+            outputStream.close();
+            byte[] imgData = outputStream.toByteArray();
+            int lastIndexOf = fileName.lastIndexOf(".");
+            File outputfile = new File(fileName.substring(0, lastIndexOf) + ".png");
+            ImageIO.write(ImageIO.read(new ByteArrayInputStream(imgData)), "png", outputfile);
+            return outputfile;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        throw new RuntimeException();
+    }
+
+    private File execute(HttpRequestBase request, String fileName, FileExtension fileExtension) throws UnsuccessfulHttpException {
         try {
             CloseableHttpResponse response = httpClient.execute(request);
 
             HttpEntity entity = response.getEntity();
             String body = EntityUtils.toString(entity);
 
-            if (response.getStatusLine().getStatusCode() == 200) {
+            if (response.getStatusLine().getStatusCode() == 200 && fileExtension.equals(FileExtension.CONFIG)) {
                 return writeToFile(body, fileName);
+            } else if (response.getStatusLine().getStatusCode() == 200 && fileExtension.equals(FileExtension.QR_CODE)) {
+                File file = writeToFile(body, fileName);
+                return svgToPng(file, fileName);
             }
-
             throw new UnsuccessfulHttpException(response.getStatusLine().getStatusCode(), "Client Not Found");
-
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -399,7 +427,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
             HttpEntity entity = response.getEntity();
             String body = "{}";
             if (entity != null) {
-                 body = EntityUtils.toString(entity);
+                body = EntityUtils.toString(entity);
             }
 
             if (devMode) {
