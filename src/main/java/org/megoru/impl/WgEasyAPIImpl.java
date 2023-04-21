@@ -104,7 +104,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public File getQRCode(String userId, String fileName) throws UnsuccessfulHttpException {
+    public File getQRCode(String userId, String fileName) {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
@@ -120,7 +120,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public File getConfig(String userId, String fileName) throws UnsuccessfulHttpException {
+    public File getConfig(String userId, String fileName)  {
         //https://vpn.megoru.ru/api/wireguard/client/83e7877e-9eea-4695-823e-b729cddb5d8c/configuration
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
@@ -137,7 +137,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public Create createClient(String name) throws UnsuccessfulHttpException {
+    public Create createClient(String name) {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
@@ -156,7 +156,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public Status updateClientAddress(String userId, String address) throws UnsuccessfulHttpException {
+    public Status updateClientAddress(String userId, String address)   {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
@@ -178,7 +178,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public Status disableClient(String userId) throws UnsuccessfulHttpException {
+    public Status disableClient(String userId) {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
@@ -193,7 +193,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public Status enableClient(String userId) throws UnsuccessfulHttpException {
+    public Status enableClient(String userId)   {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
@@ -208,7 +208,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public Status deleteClient(String userId) throws UnsuccessfulHttpException {
+    public Status deleteClient(String userId)   {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
@@ -221,7 +221,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
 
     //TODO: Если без json можно сломать веб UI или без name
     @Override
-    public Status renameClient(String userId, String name) throws UnsuccessfulHttpException {
+    public Status renameClient(String userId, String name) {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
@@ -242,7 +242,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
 
     @Override
     @Nullable
-    public Client getClientByName(String name) throws UnsuccessfulHttpException, IllegalStateException, NullPointerException {
+    public Client getClientByName(String name) throws IllegalStateException, NullPointerException {
         Client[] clients = Arrays.stream(getClients())
                 .filter(c -> c.getName().equals(name))
                 .toArray(Client[]::new);
@@ -257,7 +257,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public @Nullable Client getClientById(String userId) throws UnsuccessfulHttpException, NullPointerException {
+    public @Nullable Client getClientById(String userId) throws NullPointerException {
         Client[] clients = Arrays.stream(getClients())
                 .filter(c -> c.getId().equals(userId))
                 .toArray(Client[]::new);
@@ -269,7 +269,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public Client[] getClients() throws UnsuccessfulHttpException {
+    public Client[] getClients()   {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
@@ -280,7 +280,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public Session getSession() throws UnsuccessfulHttpException {
+    public Session getSession() {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("session")
@@ -313,14 +313,14 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         execute(request);
     }
 
-    private <E> E get(HttpUrl url, ResponseTransformer<E> responseTransformer) throws UnsuccessfulHttpException {
+    private <E> E get(HttpUrl url, ResponseTransformer<E> responseTransformer) {
         HttpGet request = new HttpGet(url.uri());
         request.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
 
         return execute(request, responseTransformer);
     }
 
-    private <E> E post(HttpUrl url, JSONObject jsonBody, ResponseTransformer<E> responseTransformer) throws UnsuccessfulHttpException {
+    private <E> E post(HttpUrl url, JSONObject jsonBody, ResponseTransformer<E> responseTransformer) {
         HttpPost request = new HttpPost(url.uri());
         request.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
 
@@ -329,13 +329,13 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         return execute(request, responseTransformer);
     }
 
-    private <E> E delete(HttpUrl url, ResponseTransformer<E> responseTransformer) throws UnsuccessfulHttpException {
+    private <E> E delete(HttpUrl url, ResponseTransformer<E> responseTransformer) {
         HttpDelete request = new HttpDelete(url.uri());
         request.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
         return execute(request, responseTransformer);
     }
 
-    private <E> E put(HttpUrl url, JSONObject jsonBody, ResponseTransformer<E> responseTransformer) throws UnsuccessfulHttpException {
+    private <E> E put(HttpUrl url, JSONObject jsonBody, ResponseTransformer<E> responseTransformer) {
         HttpPut request = new HttpPut(url.uri());
         request.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
 
@@ -348,22 +348,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     private void setCookie(Cookie cookies) {
         BasicCookieStore cookieStore = new BasicCookieStore();
         cookieStore.addCookie(cookies);
-
-        ConnectionConfig build = ConnectionConfig.custom()
-                .setConnectTimeout(5, TimeUnit.SECONDS)
-                .setTimeToLive(30, TimeUnit.SECONDS)
-                .setSocketTimeout(5, TimeUnit.SECONDS)
-                .build();
-
-        PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
-        connManager.setMaxTotal(100);
-        connManager.setDefaultMaxPerRoute(20);
-        connManager.setDefaultConnectionConfig(build);
-
-        httpClient = HttpClientBuilder.create()
-                .setConnectionManager(connManager)
-                .setDefaultCookieStore(cookieStore)
-                .build();
+        httpClient = HttpClientBuilder.create().setDefaultCookieStore(cookieStore).build();
     }
 
     private File writeToFile(String text, String fileName) {
