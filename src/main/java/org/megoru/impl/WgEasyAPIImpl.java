@@ -42,6 +42,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class WgEasyAPIImpl implements WgEasyAPI {
@@ -241,7 +242,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
 
     @Override
     @Nullable
-    public Client getClientByName(String name) throws UnsuccessfulHttpException, IllegalStateException {
+    public Client getClientByName(String name) throws UnsuccessfulHttpException, IllegalStateException, NullPointerException {
         Client[] clients = Arrays.stream(getClients())
                 .filter(c -> c.getName().equals(name))
                 .toArray(Client[]::new);
@@ -250,7 +251,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
             throw new IllegalStateException("Clients must be 1. Value: " + clients.length);
 
         if (clients.length == 0)
-            return null;
+            throw new NullPointerException("Client not found: " + name);
 
         return clients[0];
     }
@@ -262,7 +263,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
                 .toArray(Client[]::new);
 
         if (clients.length == 0)
-            throw new NullPointerException("Client not found");
+            throw new NullPointerException("ClientId not found: " + userId);
 
         return clients[0];
     }
@@ -310,20 +311,6 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         request.setEntity(stringEntity);
 
         execute(request);
-    }
-
-    private void execute(ClassicHttpRequest request) {
-        try {
-            HttpClientContext context = HttpClientContext.create();
-            CloseableHttpResponse response = httpClient.execute(request, context);
-            try (response) {
-                CookieStore cookieStore = context.getCookieStore();
-                Cookie cookie = cookieStore.getCookies().get(0);
-                setCookie(cookie);
-            }
-        } catch (IOException io) {
-            io.printStackTrace();
-        }
     }
 
     private <E> E get(HttpUrl url, ResponseTransformer<E> responseTransformer) throws UnsuccessfulHttpException {
@@ -420,24 +407,42 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         throw new RuntimeException();
     }
 
-    private File execute(ClassicHttpRequest request, String fileName, FileExtension fileExtension) throws UnsuccessfulHttpException {
+    private void execute(ClassicHttpRequest request) {
         try {
-            CloseableHttpResponse response = httpClient.execute(request);
+            HttpClientContext context = HttpClientContext.create();
+            CloseableHttpResponse response = httpClient.execute(request, context);
+            try (response) {
+                CookieStore cookieStore = context.getCookieStore();
+                List<Cookie> cookie = cookieStore.getCookies();
 
-            HttpEntity entity = response.getEntity();
-            String body = EntityUtils.toString(entity);
-
-            if (response.getCode() == 200 && fileExtension.equals(FileExtension.CONFIG)) {
-                return writeToFile(body, fileName);
-            } else if (response.getCode() == 200 && fileExtension.equals(FileExtension.QR_CODE)) {
-                File file = writeToFile(body, fileName);
-                return svgToPng(file, fileName);
+                if (cookie.isEmpty()) throw new RuntimeException("Cookie is null");
+                else setCookie(cookie.get(0));
             }
-            throw new UnsuccessfulHttpException(response.getCode(), "Client Not Found");
-        } catch (IOException | ParseException e) {
-            e.printStackTrace();
+        } catch (IOException io) {
+            io.printStackTrace();
         }
-        return null;
+    }
+
+    private File execute(ClassicHttpRequest request, String fileName, FileExtension fileExtension) {
+        try {
+            return httpClient.execute(request, new BasicHttpContext(), httpResponse -> {
+                HttpEntity entity = httpResponse.getEntity();
+                String body = EntityUtils.toString(entity);
+                if (httpResponse.getCode() == 200 && fileExtension.equals(FileExtension.CONFIG)) {
+                    return writeToFile(body, fileName);
+                } else if (httpResponse.getCode() == 200 && fileExtension.equals(FileExtension.QR_CODE)) {
+                    File file = writeToFile(body, fileName);
+                    return svgToPng(file, fileName);
+                }
+                try {
+                    throw new UnsuccessfulHttpException(httpResponse.getCode(), "Client Not Found");
+                } catch (UnsuccessfulHttpException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Nullable
