@@ -6,19 +6,24 @@ import org.apache.batik.transcoder.Transcoder;
 import org.apache.batik.transcoder.TranscoderInput;
 import org.apache.batik.transcoder.TranscoderOutput;
 import org.apache.batik.transcoder.image.PNGTranscoder;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHeaders;
-import org.apache.http.client.CookieStore;
-import org.apache.http.client.methods.*;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.cookie.Cookie;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.BasicCookieStore;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.client5.http.classic.methods.HttpDelete;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.classic.methods.HttpPut;
+import org.apache.hc.client5.http.config.ConnectionConfig;
+import org.apache.hc.client5.http.cookie.BasicCookieStore;
+import org.apache.hc.client5.http.cookie.Cookie;
+import org.apache.hc.client5.http.cookie.CookieStore;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.client5.http.protocol.HttpClientContext;
+import org.apache.hc.core5.http.*;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.http.protocol.BasicHttpContext;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -37,6 +42,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 public class WgEasyAPIImpl implements WgEasyAPI {
 
@@ -306,7 +312,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         execute(request);
     }
 
-    private void execute(HttpRequestBase request) {
+    private void execute(ClassicHttpRequest request) {
         try {
             HttpClientContext context = HttpClientContext.create();
             CloseableHttpResponse response = httpClient.execute(request, context);
@@ -355,7 +361,22 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     private void setCookie(Cookie cookies) {
         BasicCookieStore cookieStore = new BasicCookieStore();
         cookieStore.addCookie(cookies);
-        httpClient = HttpClientBuilder.create().setDefaultCookieStore(cookieStore).build();
+
+        ConnectionConfig build = ConnectionConfig.custom()
+                .setConnectTimeout(5, TimeUnit.SECONDS)
+                .setTimeToLive(30, TimeUnit.SECONDS)
+                .setSocketTimeout(5, TimeUnit.SECONDS)
+                .build();
+
+        PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
+        connManager.setMaxTotal(100);
+        connManager.setDefaultMaxPerRoute(20);
+        connManager.setDefaultConnectionConfig(build);
+
+        httpClient = HttpClientBuilder.create()
+                .setConnectionManager(connManager)
+                .setDefaultCookieStore(cookieStore)
+                .build();
     }
 
     private File writeToFile(String text, String fileName) {
@@ -399,94 +420,98 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         throw new RuntimeException();
     }
 
-    private File execute(HttpRequestBase request, String fileName, FileExtension fileExtension) throws UnsuccessfulHttpException {
+    private File execute(ClassicHttpRequest request, String fileName, FileExtension fileExtension) throws UnsuccessfulHttpException {
         try {
             CloseableHttpResponse response = httpClient.execute(request);
 
             HttpEntity entity = response.getEntity();
             String body = EntityUtils.toString(entity);
 
-            if (response.getStatusLine().getStatusCode() == 200 && fileExtension.equals(FileExtension.CONFIG)) {
+            if (response.getCode() == 200 && fileExtension.equals(FileExtension.CONFIG)) {
                 return writeToFile(body, fileName);
-            } else if (response.getStatusLine().getStatusCode() == 200 && fileExtension.equals(FileExtension.QR_CODE)) {
+            } else if (response.getCode() == 200 && fileExtension.equals(FileExtension.QR_CODE)) {
                 File file = writeToFile(body, fileName);
                 return svgToPng(file, fileName);
             }
-            throw new UnsuccessfulHttpException(response.getStatusLine().getStatusCode(), "Client Not Found");
-        } catch (IOException e) {
+            throw new UnsuccessfulHttpException(response.getCode(), "Client Not Found");
+        } catch (IOException | ParseException e) {
             e.printStackTrace();
         }
         return null;
     }
 
     @Nullable
-    private <E> E execute(HttpRequestBase request, ResponseTransformer<E> responseTransformer) throws UnsuccessfulHttpException {
+    private <E> E execute(ClassicHttpRequest request, ResponseTransformer<E> responseTransformer) {
         try {
-            CloseableHttpResponse response = httpClient.execute(request);
-
-            HttpEntity entity = response.getEntity();
-            String body = "{}";
-            if (entity != null) {
-                body = EntityUtils.toString(entity);
-            }
-
-            if (devMode) {
-                String status = String.format(
-                        "StatusCode: %s Reason: %s",
-                        response.getStatusLine().getStatusCode(),
-                        response.getStatusLine().getReasonPhrase());
-                System.out.println(status);
-
-                JsonElement jsonElement = JsonParser.parseString(body);
-                String prettyJsonString = gson.toJson(jsonElement);
-                System.out.println(prettyJsonString);
-            }
-
-            switch (response.getStatusLine().getStatusCode()) {
-                case 200: {
-                    if (body.equals("{}")) {
-                        body = "{\n" + "  \"status\": \"200\"\n" + "}";
+            return httpClient.execute(request, new BasicHttpContext(), httpResponse -> {
+                HttpEntity entity = httpResponse.getEntity();
+                String body = "{}";
+                if (entity != null) {
+                    try (InputStream inputStream = entity.getContent()) {
+                        body = new String(inputStream.readAllBytes());
                     }
-                    return responseTransformer.transform(body);
                 }
-                case 204: {
-                    if (body.equals("{}")) {
-                        body = "{\n" + "  \"status\": \"204\"\n" + "}";
+
+                logResponse(httpResponse, body);
+
+                try {
+                    switch (httpResponse.getCode()) {
+                        case 200:
+                        case 204: {
+                            if (body.equals("{}")) {
+                                body = "{\n" + "  \"status\": \"" + httpResponse.getCode() + "\"\n" + "}";
+                            }
+                            return responseTransformer.transform(body);
+                        }
+                        case 401:
+                        case 403: {
+                            ErrorResponse result = gson.fromJson(body, ErrorResponse.class);
+                            throw new UnsuccessfulHttpException(httpResponse.getCode(), result.getError());
+                        }
+                        case 404: {
+                            ErrorNotFound errorNotFound = gson.fromJson(body, ErrorNotFound.class);
+                            throw new UnsuccessfulHttpException(httpResponse.getCode(), errorNotFound.getError());
+                        }
+                        case 429: {
+                            ErrorResponseToMany result = gson.fromJson(body, ErrorResponseToMany.class);
+                            throw new UnsuccessfulHttpException(result.getStatusCode(), result.getMessage());
+                        }
+                        case 502: {
+                            body = "{\n" +
+                                    "  \"error\": {\n" +
+                                    "    \"code\": 502,\n" +
+                                    "    \"message\": \"Bad Gateway\"\n" +
+                                    "  }\n" +
+                                    "}";
+                            ErrorResponse result = gson.fromJson(body, ErrorResponse.class);
+                            throw new UnsuccessfulHttpException(httpResponse.getCode(), result.getError());
+                        }
+                        default:
+                            ErrorResponse result = gson.fromJson(body, ErrorResponse.class);
+                            throw new UnsuccessfulHttpException(httpResponse.getCode(), result.getError());
                     }
-                    return responseTransformer.transform(body);
+
+                } catch (UnsuccessfulHttpException e) {
+                    throw new RuntimeException(e);
                 }
-                case 401:
-                case 403: {
-                    ErrorResponse result = gson.fromJson(body, ErrorResponse.class);
-                    throw new UnsuccessfulHttpException(response.getStatusLine().getStatusCode(), result.getError());
-                }
-                case 404: {
-                    ErrorNotFound errorNotFound = gson.fromJson(body, ErrorNotFound.class);
-                    throw new UnsuccessfulHttpException(response.getStatusLine().getStatusCode(), errorNotFound.getError());
-                }
-                case 429: {
-                    ErrorResponseToMany result = gson.fromJson(body, ErrorResponseToMany.class);
-                    throw new UnsuccessfulHttpException(result.getStatusCode(), result.getMessage());
-                }
-                case 502: {
-                    body = "{\n" +
-                            "  \"error\": {\n" +
-                            "    \"code\": 502,\n" +
-                            "    \"message\": \"Bad Gateway\"\n" +
-                            "  }\n" +
-                            "}";
-                    ErrorResponse result = gson.fromJson(body, ErrorResponse.class);
-                    throw new UnsuccessfulHttpException(response.getStatusLine().getStatusCode(), result.getError());
-                }
-                default:
-                    ErrorResponse result = gson.fromJson(body, ErrorResponse.class);
-                    throw new UnsuccessfulHttpException(response.getStatusLine().getStatusCode(), result.getError());
-            }
+            });
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
+    private void logResponse(ClassicHttpResponse response, String body) {
+        if (!devMode) {
+            return;
+        }
 
+        String status = String.format(
+                "StatusCode: %s Reason: %s",
+                response.getCode(),
+                response.getReasonPhrase());
+        System.out.println(status);
+        JsonElement jsonElement = JsonParser.parseString(body);
+        String prettyJsonString = gson.toJson(jsonElement);
+        System.out.println(prettyJsonString);
+    }
 }
