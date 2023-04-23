@@ -47,7 +47,11 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     private final HttpUrl baseUrl;
 
     private final Gson gson;
-    private CloseableHttpClient httpClient = HttpClients.createDefault();
+    private CloseableHttpClient httpClient = HttpClients
+            .custom()
+            .setConnectionReuseStrategy(((request, response, context) -> false))
+            .useSystemProperties()
+            .build();
     private final BasicHttpContext basicHttpContext = new BasicHttpContext();
     private final String password;
     private final boolean devMode;
@@ -365,6 +369,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
 
         httpClient = HttpClientBuilder
                 .create()
+                .setConnectionReuseStrategy(((request, response, context) -> false))
                 .setDefaultCookieStore(cookieStore)
                 .build();
     }
