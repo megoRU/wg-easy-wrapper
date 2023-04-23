@@ -117,6 +117,7 @@ public interface WgEasyAPI {
         private String domain;
         private int port;
         private String ip;
+        private boolean http2;
 
         /**
          * This enables LOGS
@@ -133,6 +134,11 @@ public interface WgEasyAPI {
 
         public Builder ip(String ip) {
             this.ip = ip;
+            return this;
+        }
+
+        public Builder enableHTTP2() {
+            this.http2 = true;
             return this;
         }
 
@@ -163,10 +169,10 @@ public interface WgEasyAPI {
                 throw new IllegalArgumentException("The provided ip and domain cannot be null!");
 
             if (domain != null && ip == null)
-                return new WgEasyAPIImpl(password, domain, devMode);
+                return new WgEasyAPIImpl(password, domain, devMode, http2);
 
             if (port > 0)
-                return new WgEasyAPIImpl(password, ip, port, devMode);
+                return new WgEasyAPIImpl(password, ip, port, devMode, http2);
 
             throw new IllegalArgumentException("You a made error");
         }

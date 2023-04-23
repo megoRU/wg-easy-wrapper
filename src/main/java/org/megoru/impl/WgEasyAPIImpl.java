@@ -10,7 +10,6 @@ import org.apache.hc.client5.http.classic.methods.HttpDelete;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.classic.methods.HttpPut;
-import org.apache.hc.client5.http.config.ConnectionConfig;
 import org.apache.hc.client5.http.cookie.BasicCookieStore;
 import org.apache.hc.client5.http.cookie.Cookie;
 import org.apache.hc.client5.http.cookie.CookieStore;
@@ -18,7 +17,6 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.client5.http.protocol.HttpClientContext;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
@@ -43,7 +41,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class WgEasyAPIImpl implements WgEasyAPI {
 
@@ -51,10 +48,11 @@ public class WgEasyAPIImpl implements WgEasyAPI {
 
     private final Gson gson;
     private CloseableHttpClient httpClient = HttpClients.createDefault();
+    private final BasicHttpContext basicHttpContext = new BasicHttpContext();
     private final String password;
     private final boolean devMode;
 
-    protected WgEasyAPIImpl(String password, String domain, boolean devMode) {
+    protected WgEasyAPIImpl(String password, String domain, boolean devMode, boolean http2) {
         this.devMode = devMode;
         this.password = password;
 
@@ -75,10 +73,18 @@ public class WgEasyAPIImpl implements WgEasyAPI {
 
         }).setPrettyPrinting().create();
 
+        ProtocolVersion protocolVersion;
+        if (http2) {
+            protocolVersion = new ProtocolVersion("HTTP", 2, 0);
+        } else {
+            protocolVersion = new ProtocolVersion("HTTP", 1, 1);
+        }
+        basicHttpContext.setProtocolVersion(protocolVersion);
+
         setSession();
     }
 
-    protected WgEasyAPIImpl(String password, String ip, int port, boolean devMode) {
+    protected WgEasyAPIImpl(String password, String ip, int port, boolean devMode, boolean http2) {
         this.devMode = devMode;
         this.password = password;
 
@@ -100,6 +106,14 @@ public class WgEasyAPIImpl implements WgEasyAPI {
 
         }).setPrettyPrinting().create();
 
+        ProtocolVersion protocolVersion;
+        if (http2) {
+            protocolVersion = new ProtocolVersion("HTTP", 2, 0);
+        } else {
+            protocolVersion = new ProtocolVersion("HTTP", 1, 1);
+        }
+        basicHttpContext.setProtocolVersion(protocolVersion);
+
         setSession();
     }
 
@@ -120,7 +134,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public File getConfig(String userId, String fileName)  {
+    public File getConfig(String userId, String fileName) {
         //https://vpn.megoru.ru/api/wireguard/client/83e7877e-9eea-4695-823e-b729cddb5d8c/configuration
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
@@ -156,7 +170,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public Status updateClientAddress(String userId, String address)   {
+    public Status updateClientAddress(String userId, String address) {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
@@ -166,7 +180,6 @@ public class WgEasyAPIImpl implements WgEasyAPI {
                 .build();
 
         JSONObject json = new JSONObject();
-
 
         try {
             json.put("address ", address);
@@ -193,7 +206,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public Status enableClient(String userId)   {
+    public Status enableClient(String userId) {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
@@ -208,7 +221,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public Status deleteClient(String userId)   {
+    public Status deleteClient(String userId) {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
@@ -269,7 +282,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public Client[] getClients()   {
+    public Client[] getClients() {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
@@ -284,7 +297,6 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("session")
-                .addQueryParameter("password", password)
                 .build();
 
         return get(url, new DefaultResponseTransformer<>(Session.class, gson));
@@ -326,12 +338,14 @@ public class WgEasyAPIImpl implements WgEasyAPI {
 
         HttpEntity stringEntity = new StringEntity(jsonBody.toString(), ContentType.APPLICATION_JSON);
         request.setEntity(stringEntity);
+
         return execute(request, responseTransformer);
     }
 
     private <E> E delete(HttpUrl url, ResponseTransformer<E> responseTransformer) {
         HttpDelete request = new HttpDelete(url.uri());
         request.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+
         return execute(request, responseTransformer);
     }
 
@@ -348,7 +362,11 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     private void setCookie(Cookie cookies) {
         BasicCookieStore cookieStore = new BasicCookieStore();
         cookieStore.addCookie(cookies);
-        httpClient = HttpClientBuilder.create().setDefaultCookieStore(cookieStore).build();
+
+        httpClient = HttpClientBuilder
+                .create()
+                .setDefaultCookieStore(cookieStore)
+                .build();
     }
 
     private File writeToFile(String text, String fileName) {
@@ -400,6 +418,11 @@ public class WgEasyAPIImpl implements WgEasyAPI {
                 CookieStore cookieStore = context.getCookieStore();
                 List<Cookie> cookie = cookieStore.getCookies();
 
+                if (devMode) {
+                    System.out.println("cookie: " + context.getResponse().getVersion());
+                    System.out.println(Arrays.toString(context.getResponse().getHeaders()));
+                }
+
                 if (cookie.isEmpty()) throw new RuntimeException("Cookie is null");
                 else setCookie(cookie.get(0));
             }
@@ -410,7 +433,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
 
     private File execute(ClassicHttpRequest request, String fileName, FileExtension fileExtension) {
         try {
-            return httpClient.execute(request, new BasicHttpContext(), httpResponse -> {
+            return httpClient.execute(request, basicHttpContext, httpResponse -> {
                 HttpEntity entity = httpResponse.getEntity();
                 String body = EntityUtils.toString(entity);
                 if (httpResponse.getCode() == 200 && fileExtension.equals(FileExtension.CONFIG)) {
@@ -433,7 +456,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     @Nullable
     private <E> E execute(ClassicHttpRequest request, ResponseTransformer<E> responseTransformer) {
         try {
-            return httpClient.execute(request, new BasicHttpContext(), httpResponse -> {
+            return httpClient.execute(request, basicHttpContext, httpResponse -> {
                 HttpEntity entity = httpResponse.getEntity();
                 String body = "{}";
                 if (entity != null) {
@@ -494,6 +517,9 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         if (!devMode) {
             return;
         }
+
+        System.out.println("Response: " + response.getVersion());
+        System.out.println(Arrays.toString(response.getHeaders()));
 
         String status = String.format(
                 "StatusCode: %s Reason: %s",
