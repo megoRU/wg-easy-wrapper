@@ -81,7 +81,7 @@ public interface WgEasyAPI {
      * @throws IllegalStateException - if more than 1 user
      */
     @Nullable
-    Client getClientByName(String name) throws UnsuccessfulHttpException, IllegalStateException, NullPointerException;
+    Client getClientByName(String name) throws UnsuccessfulHttpException, IllegalStateException;
 
     /**
      * @return {@link Client}

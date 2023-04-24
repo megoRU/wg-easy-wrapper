@@ -237,7 +237,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
 
     @Override
     @Nullable
-    public Client getClientByName(String name) throws IllegalStateException, NullPointerException, UnsuccessfulHttpException {
+    public Client getClientByName(String name) throws IllegalStateException, UnsuccessfulHttpException {
         Client[] clients = Arrays.stream(getClients())
                 .filter(c -> c.getName().equals(name))
                 .toArray(Client[]::new);
@@ -245,8 +245,9 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         if (clients.length > 1)
             throw new IllegalStateException("Clients must be 1. Value: " + clients.length);
 
+        //Не менять ибо нарушаем логику.
         if (clients.length == 0)
-            throw new NullPointerException("Client not found: " + name);
+            return null;
 
         return clients[0];
     }
