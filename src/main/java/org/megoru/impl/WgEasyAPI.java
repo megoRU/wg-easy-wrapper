@@ -117,7 +117,7 @@ public interface WgEasyAPI {
         private String domain;
         private int port;
         private String ip;
-        private boolean http2;
+//        private boolean http2;
 
         /**
          * This enables LOGS
@@ -137,10 +137,10 @@ public interface WgEasyAPI {
             return this;
         }
 
-        public Builder enableHTTP2() {
-            this.http2 = true;
-            return this;
-        }
+//        public Builder enableHTTP2() {
+//            this.http2 = true;
+//            return this;
+//        }
 
         /**
          * @param domain It`s domain address with out https://. Example: vpn.megoru.ru
@@ -169,10 +169,10 @@ public interface WgEasyAPI {
                 throw new IllegalArgumentException("The provided ip and domain cannot be null!");
 
             if (domain != null && ip == null)
-                return new WgEasyAPIImpl(password, domain, devMode, http2);
+                return new WgEasyAPIImpl(password, domain, devMode);
 
             if (port > 0)
-                return new WgEasyAPIImpl(password, ip, port, devMode, http2);
+                return new WgEasyAPIImpl(password, ip, port, devMode);
 
             throw new IllegalArgumentException("You a made error");
         }

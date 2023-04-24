@@ -15,13 +15,11 @@ import org.apache.hc.client5.http.cookie.Cookie;
 import org.apache.hc.client5.http.cookie.CookieStore;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
-import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.protocol.HttpClientContext;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.StringEntity;
-import org.apache.hc.core5.http.protocol.BasicHttpContext;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -47,16 +45,12 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     private final HttpUrl baseUrl;
 
     private final Gson gson;
-    private CloseableHttpClient httpClient = HttpClients
-            .custom()
-            .setConnectionReuseStrategy(((request, response, context) -> false))
-            .useSystemProperties()
-            .build();
-    private final BasicHttpContext basicHttpContext = new BasicHttpContext();
+
+    private BasicCookieStore cookieStore = new BasicCookieStore();
     private final String password;
     private final boolean devMode;
 
-    protected WgEasyAPIImpl(String password, String domain, boolean devMode, boolean http2) {
+    protected WgEasyAPIImpl(String password, String domain, boolean devMode) {
         this.devMode = devMode;
         this.password = password;
 
@@ -77,18 +71,10 @@ public class WgEasyAPIImpl implements WgEasyAPI {
 
         }).setPrettyPrinting().create();
 
-        ProtocolVersion protocolVersion;
-        if (http2) {
-            protocolVersion = new ProtocolVersion("HTTP", 2, 0);
-        } else {
-            protocolVersion = new ProtocolVersion("HTTP", 1, 1);
-        }
-        basicHttpContext.setProtocolVersion(protocolVersion);
-
         setSession();
     }
 
-    protected WgEasyAPIImpl(String password, String ip, int port, boolean devMode, boolean http2) {
+    protected WgEasyAPIImpl(String password, String ip, int port, boolean devMode) {
         this.devMode = devMode;
         this.password = password;
 
@@ -109,14 +95,6 @@ public class WgEasyAPIImpl implements WgEasyAPI {
             }
 
         }).setPrettyPrinting().create();
-
-        ProtocolVersion protocolVersion;
-        if (http2) {
-            protocolVersion = new ProtocolVersion("HTTP", 2, 0);
-        } else {
-            protocolVersion = new ProtocolVersion("HTTP", 1, 1);
-        }
-        basicHttpContext.setProtocolVersion(protocolVersion);
 
         setSession();
     }
@@ -155,7 +133,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public Create createClient(String name) {
+    public Create createClient(String name) throws UnsuccessfulHttpException {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
@@ -174,7 +152,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public Status updateClientAddress(String userId, String address) {
+    public Status updateClientAddress(String userId, String address) throws UnsuccessfulHttpException {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
@@ -195,7 +173,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public Status disableClient(String userId) {
+    public Status disableClient(String userId) throws UnsuccessfulHttpException {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
@@ -210,7 +188,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public Status enableClient(String userId) {
+    public Status enableClient(String userId) throws UnsuccessfulHttpException {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
@@ -225,7 +203,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public Status deleteClient(String userId) {
+    public Status deleteClient(String userId) throws UnsuccessfulHttpException {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
@@ -238,7 +216,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
 
     //TODO: Если без json можно сломать веб UI или без name
     @Override
-    public Status renameClient(String userId, String name) {
+    public Status renameClient(String userId, String name) throws UnsuccessfulHttpException {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
@@ -259,7 +237,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
 
     @Override
     @Nullable
-    public Client getClientByName(String name) throws IllegalStateException, NullPointerException {
+    public Client getClientByName(String name) throws IllegalStateException, NullPointerException, UnsuccessfulHttpException {
         Client[] clients = Arrays.stream(getClients())
                 .filter(c -> c.getName().equals(name))
                 .toArray(Client[]::new);
@@ -274,7 +252,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public @Nullable Client getClientById(String userId) throws NullPointerException {
+    public @Nullable Client getClientById(String userId) throws NullPointerException, UnsuccessfulHttpException {
         Client[] clients = Arrays.stream(getClients())
                 .filter(c -> c.getId().equals(userId))
                 .toArray(Client[]::new);
@@ -286,7 +264,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public Client[] getClients() {
+    public Client[] getClients() throws UnsuccessfulHttpException {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
@@ -297,7 +275,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public Session getSession() {
+    public Session getSession() throws UnsuccessfulHttpException {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("session")
@@ -329,14 +307,14 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         execute(request);
     }
 
-    private <E> E get(HttpUrl url, ResponseTransformer<E> responseTransformer) {
+    private <E> E get(HttpUrl url, ResponseTransformer<E> responseTransformer) throws UnsuccessfulHttpException {
         HttpGet request = new HttpGet(url.uri());
         request.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
 
         return execute(request, responseTransformer);
     }
 
-    private <E> E post(HttpUrl url, JSONObject jsonBody, ResponseTransformer<E> responseTransformer) {
+    private <E> E post(HttpUrl url, JSONObject jsonBody, ResponseTransformer<E> responseTransformer) throws UnsuccessfulHttpException {
         HttpPost request = new HttpPost(url.uri());
         request.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
 
@@ -346,14 +324,14 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         return execute(request, responseTransformer);
     }
 
-    private <E> E delete(HttpUrl url, ResponseTransformer<E> responseTransformer) {
+    private <E> E delete(HttpUrl url, ResponseTransformer<E> responseTransformer) throws UnsuccessfulHttpException {
         HttpDelete request = new HttpDelete(url.uri());
         request.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
 
         return execute(request, responseTransformer);
     }
 
-    private <E> E put(HttpUrl url, JSONObject jsonBody, ResponseTransformer<E> responseTransformer) {
+    private <E> E put(HttpUrl url, JSONObject jsonBody, ResponseTransformer<E> responseTransformer) throws UnsuccessfulHttpException {
         HttpPut request = new HttpPut(url.uri());
         request.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
 
@@ -363,15 +341,9 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         return execute(request, responseTransformer);
     }
 
-    private void setCookie(Cookie cookies) {
-        BasicCookieStore cookieStore = new BasicCookieStore();
+    private synchronized void setCookie(Cookie cookies) {
+        cookieStore = new BasicCookieStore();
         cookieStore.addCookie(cookies);
-
-        httpClient = HttpClientBuilder
-                .create()
-                .setConnectionReuseStrategy(((request, response, context) -> false))
-                .setDefaultCookieStore(cookieStore)
-                .build();
     }
 
     private File writeToFile(String text, String fileName) {
@@ -418,6 +390,13 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     private void execute(ClassicHttpRequest request) {
         try {
             HttpClientContext context = HttpClientContext.create();
+            CloseableHttpClient httpClient = HttpClients
+                    .custom()
+                    .setConnectionReuseStrategy(((requests, response, contexts) -> false))
+                    .setDefaultCookieStore(cookieStore)
+                    .useSystemProperties()
+                    .build();
+
             CloseableHttpResponse response = httpClient.execute(request, context);
             try (response) {
                 CookieStore cookieStore = context.getCookieStore();
@@ -437,85 +416,109 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     private File execute(ClassicHttpRequest request, String fileName, FileExtension fileExtension) {
-        try {
-            return httpClient.execute(request, basicHttpContext, httpResponse -> {
-                HttpEntity entity = httpResponse.getEntity();
-                String body = EntityUtils.toString(entity);
-                if (httpResponse.getCode() == 200 && fileExtension.equals(FileExtension.CONFIG)) {
+        CloseableHttpClient httpClient = HttpClients
+                .custom()
+                .setConnectionReuseStrategy(((requests, response, context) -> false))
+                .setDefaultCookieStore(cookieStore)
+                .useSystemProperties()
+                .build();
+
+        try (CloseableHttpResponse response = httpClient.execute(request)) {
+            try {
+                int statusCode = response.getCode();
+                HttpEntity entity = response.getEntity();
+                String body = entity != null ? EntityUtils.toString(entity) : null;
+                if (body == null) body = "{}";
+
+                logResponse(response, body);
+
+                if (statusCode == 200 && fileExtension.equals(FileExtension.CONFIG)) {
                     return writeToFile(body, fileName);
-                } else if (httpResponse.getCode() == 200 && fileExtension.equals(FileExtension.QR_CODE)) {
+                } else if (response.getCode() == 200 && fileExtension.equals(FileExtension.QR_CODE)) {
                     File file = writeToFile(body, fileName);
                     return svgToPng(file, fileName);
                 }
-                try {
-                    throw new UnsuccessfulHttpException(httpResponse.getCode(), "Client Not Found");
-                } catch (UnsuccessfulHttpException e) {
-                    throw new RuntimeException(e);
-                }
-            });
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
+        } finally {
+            try {
+                httpClient.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
+        throw new RuntimeException();
     }
 
     @Nullable
-    private <E> E execute(ClassicHttpRequest request, ResponseTransformer<E> responseTransformer) {
+    private <E> E execute(ClassicHttpRequest request, ResponseTransformer<E> responseTransformer) throws
+            UnsuccessfulHttpException {
+        CloseableHttpClient httpClient = HttpClients
+                .custom()
+                .setConnectionReuseStrategy(((requests, response, context) -> false))
+                .setDefaultCookieStore(cookieStore)
+                .useSystemProperties()
+                .build();
         try {
-            return httpClient.execute(request, basicHttpContext, httpResponse -> {
-                HttpEntity entity = httpResponse.getEntity();
-                String body = "{}";
-                if (entity != null) {
-                    try (InputStream inputStream = entity.getContent()) {
-                        body = new String(inputStream.readAllBytes());
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                int statusCode = response.getCode();
+                HttpEntity entity = response.getEntity();
+                String body = entity != null ? EntityUtils.toString(entity) : null;
+                if (body == null) body = "{}";
+
+                logResponse(response, body);
+
+                switch (statusCode) {
+                    case 200:
+                    case 204: {
+                        if (body.equals("{}")) {
+                            body = "{\n" + "  \"status\": \"" + response.getCode() + "\"\n" + "}";
+                        }
+                        return responseTransformer.transform(body);
                     }
-                }
-
-                logResponse(httpResponse, body);
-
-                try {
-                    switch (httpResponse.getCode()) {
-                        case 200:
-                        case 204: {
-                            if (body.equals("{}")) {
-                                body = "{\n" + "  \"status\": \"" + httpResponse.getCode() + "\"\n" + "}";
-                            }
-                            return responseTransformer.transform(body);
-                        }
-                        case 401:
-                        case 403: {
-                            ErrorResponse result = gson.fromJson(body, ErrorResponse.class);
-                            throw new UnsuccessfulHttpException(httpResponse.getCode(), result.getError());
-                        }
-                        case 404: {
-                            ErrorNotFound errorNotFound = gson.fromJson(body, ErrorNotFound.class);
-                            throw new UnsuccessfulHttpException(httpResponse.getCode(), errorNotFound.getError());
-                        }
-                        case 429: {
-                            ErrorResponseToMany result = gson.fromJson(body, ErrorResponseToMany.class);
-                            throw new UnsuccessfulHttpException(result.getStatusCode(), result.getMessage());
-                        }
-                        case 502: {
-                            body = "{\n" +
-                                    "  \"error\": {\n" +
-                                    "    \"code\": 502,\n" +
-                                    "    \"message\": \"Bad Gateway\"\n" +
-                                    "  }\n" +
-                                    "}";
-                            ErrorResponse result = gson.fromJson(body, ErrorResponse.class);
-                            throw new UnsuccessfulHttpException(httpResponse.getCode(), result.getError());
-                        }
-                        default:
-                            ErrorResponse result = gson.fromJson(body, ErrorResponse.class);
-                            throw new UnsuccessfulHttpException(httpResponse.getCode(), result.getError());
+                    case 401:
+                    case 403: {
+                        ErrorResponse result = gson.fromJson(body, ErrorResponse.class);
+                        throw new UnsuccessfulHttpException(response.getCode(), result.getError());
                     }
-
-                } catch (UnsuccessfulHttpException e) {
-                    throw new RuntimeException(e);
+                    case 404: {
+                        ErrorNotFound errorNotFound = gson.fromJson(body, ErrorNotFound.class);
+                        throw new UnsuccessfulHttpException(response.getCode(), errorNotFound.getError());
+                    }
+                    case 429: {
+                        ErrorResponseToMany result = gson.fromJson(body, ErrorResponseToMany.class);
+                        throw new UnsuccessfulHttpException(result.getStatusCode(), result.getMessage());
+                    }
+                    case 502: {
+                        body = "{\n" +
+                                "  \"error\": {\n" +
+                                "    \"code\": 502,\n" +
+                                "    \"message\": \"Bad Gateway\"\n" +
+                                "  }\n" +
+                                "}";
+                        ErrorResponse result = gson.fromJson(body, ErrorResponse.class);
+                        throw new UnsuccessfulHttpException(response.getCode(), result.getError());
+                    }
+                    default:
+                        ErrorResponse result = gson.fromJson(body, ErrorResponse.class);
+                        throw new UnsuccessfulHttpException(response.getCode(), result.getError());
                 }
-            });
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
+        } finally {
+            try {
+                httpClient.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
+        throw new RuntimeException();
     }
 
     private void logResponse(ClassicHttpResponse response, String body) {
