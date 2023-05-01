@@ -8,106 +8,117 @@ import org.megoru.entity.api.Status;
 import org.megoru.io.UnsuccessfulHttpException;
 
 import java.io.File;
+import java.util.concurrent.CompletionStage;
 
 public interface WgEasyAPI {
 
-    /**
-     * Get qr code config
-     *
-     * @param userId   - it`s userId
-     * @param fileName - file name without file extension
-     * @return {@link File}
-     */
-    File getQRCode(String userId, String fileName) throws UnsuccessfulHttpException;
-
-    /**
-     * Get user config
-     *
-     * @param userId   - it`s userId
-     * @param fileName - file name without file extension
-     * @return {@link File}
-     */
-    File getConfig(String userId, String fileName) throws UnsuccessfulHttpException;
-
-    /**
-     * Create user
-     *
-     * @param name - The username must be unique! If it is non-unique. When searching for userId, there will be 2 or more values.
-     * @return {@link Create}
-     */
-    Create createClient(String name) throws UnsuccessfulHttpException;
-
-    /**
-     * Update user peer address
-     *
-     * @param userId - it`s userId
-     * @return {@link Status}
-     */
-    Status updateClientAddress(String userId, String address) throws UnsuccessfulHttpException;
-
-    /**
-     * Disable user peer
-     *
-     * @param userId - it`s userId
-     * @return {@link Status}
-     */
-    Status disableClient(String userId) throws UnsuccessfulHttpException;
-
-    /**
-     * Enable user peer
-     *
-     * @param userId - it`s userId
-     * @return {@link Status}
-     */
-    Status enableClient(String userId) throws UnsuccessfulHttpException;
-
-    /**
-     * Delete user peer
-     *
-     * @param userId - it`s userId
-     * @return {@link Status}
-     */
-    Status deleteClient(String userId) throws UnsuccessfulHttpException;
-
+//    /**
+//     * Get qr code config
+//     *
+//     * @param userId   - it`s userId
+//     * @param fileName - file name without file extension
+//     * @return {@link File}
+//     */
+//    File getQRCode(String userId, String fileName) throws UnsuccessfulHttpException;
+//
+//    /**
+//     * Get user config
+//     *
+//     * @param userId   - it`s userId
+//     * @param fileName - file name without file extension
+//     * @return {@link File}
+//     */
+//    File getConfig(String userId, String fileName) throws UnsuccessfulHttpException;
+//
+//    /**
+//     * Create user
+//     *
+//     * @param name - The username must be unique! If it is non-unique. When searching for userId, there will be 2 or more values.
+//     * @return {@link Create}
+//     */
+//    Create createClient(String name) throws UnsuccessfulHttpException;
+//
+//    /**
+//     * Update user peer address
+//     *
+//     * @param userId - it`s userId
+//     * @return {@link Status}
+//     */
+//    Status updateClientAddress(String userId, String address) throws UnsuccessfulHttpException;
+//
+//    /**
+//     * Disable user peer
+//     *
+//     * @param userId - it`s userId
+//     * @return {@link Status}
+//     */
+//    Status disableClient(String userId) throws UnsuccessfulHttpException;
+//
+//    /**
+//     * Enable user peer
+//     *
+//     * @param userId - it`s userId
+//     * @return {@link Status}
+//     */
+//    Status enableClient(String userId) throws UnsuccessfulHttpException;
+//
+//    /**
+//     * Delete user peer
+//     *
+//     * @param userId - it`s userId
+//     * @return {@link Status}
+//     */
+//    Status deleteClient(String userId) throws UnsuccessfulHttpException;
+//
     /**
      * @param userId - it`s userId
      * @param name   - The username must be unique! If it is non-unique. When searching for userId, there will be 2 or more values.
      * @return {@link Status}
      */
-    Status renameClient(String userId, String name) throws UnsuccessfulHttpException;
+    CompletionStage<Status> renameClient(String userId, String name) throws UnsuccessfulHttpException;
 
     /**
      * @return {@link Client}
      * @throws IllegalStateException - if more than 1 user
      */
     @Nullable
-    Client getClientByName(String name) throws UnsuccessfulHttpException, IllegalStateException;
+    Client getClientByName(String name) throws IllegalStateException;
 
     /**
      * @return {@link Client}
      * @throws NullPointerException - if no user
      */
     @Nullable
-    Client getClientById(String userId) throws UnsuccessfulHttpException, NullPointerException;
+    Client getClientById(String userId) throws NullPointerException;
+
+//    /**
+//     * List of Clients
+//     *
+//     * @return {@link Client[]}
+//     */
+//    Client[] getClients() throws UnsuccessfulHttpException;
 
     /**
      * List of Clients
      *
      * @return {@link Client[]}
      */
-    Client[] getClients() throws UnsuccessfulHttpException;
+    CompletionStage<Client[]> getClients();
+
+
+    /**
+     * Setup new Session
+     */
+    CompletionStage<Void> setSession();
+
 
     /**
      * Get current Session
      *
      * @return {@link Session}
      */
-    Session getSession() throws UnsuccessfulHttpException;
+    CompletionStage<Session> getSession();
 
-    /**
-     * Setup new Session
-     */
-    void setSession() throws UnsuccessfulHttpException;
 
     class Builder {
 
