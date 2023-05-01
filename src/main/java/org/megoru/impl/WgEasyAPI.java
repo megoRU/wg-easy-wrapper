@@ -5,77 +5,76 @@ import org.megoru.entity.api.Client;
 import org.megoru.entity.api.Create;
 import org.megoru.entity.api.Session;
 import org.megoru.entity.api.Status;
-import org.megoru.io.UnsuccessfulHttpException;
 
 import java.io.File;
 import java.util.concurrent.CompletionStage;
 
 public interface WgEasyAPI {
 
-//    /**
-//     * Get qr code config
-//     *
-//     * @param userId   - it`s userId
-//     * @param fileName - file name without file extension
-//     * @return {@link File}
-//     */
-//    File getQRCode(String userId, String fileName) throws UnsuccessfulHttpException;
-//
-//    /**
-//     * Get user config
-//     *
-//     * @param userId   - it`s userId
-//     * @param fileName - file name without file extension
-//     * @return {@link File}
-//     */
-//    File getConfig(String userId, String fileName) throws UnsuccessfulHttpException;
-//
-//    /**
-//     * Create user
-//     *
-//     * @param name - The username must be unique! If it is non-unique. When searching for userId, there will be 2 or more values.
-//     * @return {@link Create}
-//     */
-//    Create createClient(String name) throws UnsuccessfulHttpException;
-//
-//    /**
-//     * Update user peer address
-//     *
-//     * @param userId - it`s userId
-//     * @return {@link Status}
-//     */
-//    Status updateClientAddress(String userId, String address) throws UnsuccessfulHttpException;
-//
-//    /**
-//     * Disable user peer
-//     *
-//     * @param userId - it`s userId
-//     * @return {@link Status}
-//     */
-//    Status disableClient(String userId) throws UnsuccessfulHttpException;
-//
-//    /**
-//     * Enable user peer
-//     *
-//     * @param userId - it`s userId
-//     * @return {@link Status}
-//     */
-//    Status enableClient(String userId) throws UnsuccessfulHttpException;
-//
-//    /**
-//     * Delete user peer
-//     *
-//     * @param userId - it`s userId
-//     * @return {@link Status}
-//     */
-//    Status deleteClient(String userId) throws UnsuccessfulHttpException;
-//
+    /**
+     * Get qr code config
+     *
+     * @param userId   - it`s userId
+     * @param fileName - file name without file extension
+     * @return {@link File}
+     */
+    CompletionStage<File> getQRCode(String userId, String fileName);
+
+    /**
+     * Get user config
+     *
+     * @param userId   - it`s userId
+     * @param fileName - file name without file extension
+     * @return {@link File}
+     */
+    CompletionStage<File> getConfig(String userId, String fileName);
+
+    /**
+     * Create user
+     *
+     * @param name - The username must be unique! If it is non-unique. When searching for userId, there will be 2 or more values.
+     * @return {@link Create}
+     */
+    CompletionStage<Create> createClient(String name);
+
+    /**
+     * Update user peer address
+     *
+     * @param userId - it`s userId
+     * @return {@link Status}
+     */
+    CompletionStage<Status> updateClientAddress(String userId, String address);
+
+    /**
+     * Disable user peer
+     *
+     * @param userId - it`s userId
+     * @return {@link Status}
+     */
+    CompletionStage<Status> disableClient(String userId);
+
+    /**
+     * Enable user peer
+     *
+     * @param userId - it`s userId
+     * @return {@link Status}
+     */
+    CompletionStage<Status> enableClient(String userId);
+
+    /**
+     * Delete user peer
+     *
+     * @param userId - it`s userId
+     * @return {@link Status}
+     */
+    CompletionStage<Status> deleteClient(String userId);
+
     /**
      * @param userId - it`s userId
      * @param name   - The username must be unique! If it is non-unique. When searching for userId, there will be 2 or more values.
      * @return {@link Status}
      */
-    CompletionStage<Status> renameClient(String userId, String name) throws UnsuccessfulHttpException;
+    CompletionStage<Status> renameClient(String userId, String name);
 
     /**
      * @return {@link Client}
@@ -90,13 +89,6 @@ public interface WgEasyAPI {
      */
     @Nullable
     Client getClientById(String userId) throws NullPointerException;
-
-//    /**
-//     * List of Clients
-//     *
-//     * @return {@link Client[]}
-//     */
-//    Client[] getClients() throws UnsuccessfulHttpException;
 
     /**
      * List of Clients

@@ -6,17 +6,15 @@ import org.apache.batik.transcoder.Transcoder;
 import org.apache.batik.transcoder.TranscoderInput;
 import org.apache.batik.transcoder.TranscoderOutput;
 import org.apache.batik.transcoder.image.PNGTranscoder;
-import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.HttpHeaders;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.megoru.entity.ErrorResponse;
 import org.megoru.entity.ErrorResponseToMany;
-import org.megoru.entity.api.Client;
-import org.megoru.entity.api.ErrorNotFound;
-import org.megoru.entity.api.Session;
-import org.megoru.entity.api.Status;
+import org.megoru.entity.api.*;
 import org.megoru.io.DefaultResponseTransformer;
 import org.megoru.io.ResponseTransformer;
 import org.megoru.io.UnsuccessfulHttpException;
@@ -92,122 +90,136 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         setSession();
     }
 
-    //    @Override
-//    public File getQRCode(String userId, String fileName) {
-//        HttpUrl url = baseUrl.newBuilder()
-//                .addPathSegment("api")
-//                .addPathSegment("wireguard")
-//                .addPathSegment("client")
-//                .addPathSegment(userId)
-//                .addPathSegment("qrcode.svg")
-//                .build();
-//
-//        HttpGet request = new HttpGet(url.uri());
-//        request.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-//
-//        return execute(request, fileName + ".svg", FileExtension.QR_CODE);
-//    }
-//
-//    @Override
-//    public File getConfig(String userId, String fileName) {
-//        //https://vpn.megoru.ru/api/wireguard/client/83e7877e-9eea-4695-823e-b729cddb5d8c/configuration
-//        HttpUrl url = baseUrl.newBuilder()
-//                .addPathSegment("api")
-//                .addPathSegment("wireguard")
-//                .addPathSegment("client")
-//                .addPathSegment(userId)
-//                .addPathSegment("configuration")
-//                .build();
-//
-//        HttpGet request = new HttpGet(url.uri());
-//        request.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-//
-//        return execute(request, fileName + ".conf", FileExtension.CONFIG);
-//    }
-//
-//    @Override
-//    public Create createClient(String name) throws UnsuccessfulHttpException {
-//        HttpUrl url = baseUrl.newBuilder()
-//                .addPathSegment("api")
-//                .addPathSegment("wireguard")
-//                .addPathSegment("client")
-//                .build();
-//
-//        JSONObject json = new JSONObject();
-//
-//        try {
-//            json.put("name", name);
-//        } catch (JSONException e) {
-//            e.printStackTrace();
-//        }
-//
-//        return post(url, json, new DefaultResponseTransformer<>(Create.class, gson));
-//    }
-//
-//    @Override
-//    public Status updateClientAddress(String userId, String address) throws UnsuccessfulHttpException {
-//        HttpUrl url = baseUrl.newBuilder()
-//                .addPathSegment("api")
-//                .addPathSegment("wireguard")
-//                .addPathSegment("client")
-//                .addPathSegment(userId)
-//                .addPathSegment("address")
-//                .build();
-//
-//        JSONObject json = new JSONObject();
-//
-//        try {
-//            json.put("address ", address);
-//        } catch (JSONException e) {
-//            e.printStackTrace();
-//        }
-//
-//        return put(url, json, new DefaultResponseTransformer<>(Status.class, gson));
-//    }
-//
-//    @Override
-//    public Status disableClient(String userId) throws UnsuccessfulHttpException {
-//        HttpUrl url = baseUrl.newBuilder()
-//                .addPathSegment("api")
-//                .addPathSegment("wireguard")
-//                .addPathSegment("client")
-//                .addPathSegment(userId)
-//                .addPathSegment("disable")
-//                .build();
-//
-//        JSONObject json = new JSONObject();
-//
-//        return post(url, json, new DefaultResponseTransformer<>(Status.class, gson));
-//    }
-//
-//    @Override
-//    public Status enableClient(String userId) throws UnsuccessfulHttpException {
-//        HttpUrl url = baseUrl.newBuilder()
-//                .addPathSegment("api")
-//                .addPathSegment("wireguard")
-//                .addPathSegment("client")
-//                .addPathSegment(userId)
-//                .addPathSegment("enable")
-//                .build();
-//
-//        JSONObject json = new JSONObject();
-//
-//        return post(url, json, new DefaultResponseTransformer<>(Status.class, gson));
-//    }
-//
-//    @Override
-//    public Status deleteClient(String userId) throws UnsuccessfulHttpException {
-//        HttpUrl url = baseUrl.newBuilder()
-//                .addPathSegment("api")
-//                .addPathSegment("wireguard")
-//                .addPathSegment("client")
-//                .addPathSegment(userId)
-//                .build();
-//
-//        return delete(url, new DefaultResponseTransformer<>(Status.class, gson));
-//    }
-//
-//    //TODO: Если без json можно сломать веб UI или без name
+    @Override
+    public CompletionStage<File> getQRCode(String userId, String fileName) {
+        HttpUrl url = baseUrl.newBuilder()
+                .addPathSegment("api")
+                .addPathSegment("wireguard")
+                .addPathSegment("client")
+                .addPathSegment(userId)
+                .addPathSegment("qrcode.svg")
+                .build();
+
+        HttpGet request = new HttpGet(url.uri());
+        request.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+        Request.Builder req = new Request.Builder()
+                .get()
+                .url(url)
+                .addHeader("Content-Type", "application/json");
+        if (cookie != null) {
+            req.addHeader("Cookie", cookie);
+        }
+        return executeFile(req.build(), fileName + ".svg", FileExtension.QR_CODE);
+    }
+
+    @Override
+    public CompletionStage<File> getConfig(String userId, String fileName) {
+        //https://vpn.megoru.ru/api/wireguard/client/83e7877e-9eea-4695-823e-b729cddb5d8c/configuration
+        HttpUrl url = baseUrl.newBuilder()
+                .addPathSegment("api")
+                .addPathSegment("wireguard")
+                .addPathSegment("client")
+                .addPathSegment(userId)
+                .addPathSegment("configuration")
+                .build();
+
+        HttpGet request = new HttpGet(url.uri());
+        request.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+
+        Request.Builder req = new Request.Builder()
+                .get()
+                .url(url)
+                .addHeader("Content-Type", "application/json");
+
+        if (cookie != null) {
+            req.addHeader("Cookie", cookie);
+        }
+        return executeFile(req.build(), fileName + ".conf", FileExtension.CONFIG);
+    }
+
+    @Override
+    public CompletionStage<Create> createClient(String name) {
+        HttpUrl url = baseUrl.newBuilder()
+                .addPathSegment("api")
+                .addPathSegment("wireguard")
+                .addPathSegment("client")
+                .build();
+
+        JSONObject json = new JSONObject();
+
+        try {
+            json.put("name", name);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return post(url, json, new DefaultResponseTransformer<>(Create.class, gson));
+    }
+
+    @Override
+    public CompletionStage<Status> updateClientAddress(String userId, String address) {
+        HttpUrl url = baseUrl.newBuilder()
+                .addPathSegment("api")
+                .addPathSegment("wireguard")
+                .addPathSegment("client")
+                .addPathSegment(userId)
+                .addPathSegment("address")
+                .build();
+
+        JSONObject json = new JSONObject();
+
+        try {
+            json.put("address ", address);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return put(url, json, new DefaultResponseTransformer<>(Status.class, gson));
+    }
+
+    @Override
+    public CompletionStage<Status> disableClient(String userId) {
+        HttpUrl url = baseUrl.newBuilder()
+                .addPathSegment("api")
+                .addPathSegment("wireguard")
+                .addPathSegment("client")
+                .addPathSegment(userId)
+                .addPathSegment("disable")
+                .build();
+
+        JSONObject json = new JSONObject();
+
+        return post(url, json, new DefaultResponseTransformer<>(Status.class, gson));
+    }
+
+    @Override
+    public CompletionStage<Status> enableClient(String userId) {
+        HttpUrl url = baseUrl.newBuilder()
+                .addPathSegment("api")
+                .addPathSegment("wireguard")
+                .addPathSegment("client")
+                .addPathSegment(userId)
+                .addPathSegment("enable")
+                .build();
+
+        JSONObject json = new JSONObject();
+
+        return post(url, json, new DefaultResponseTransformer<>(Status.class, gson));
+    }
+
+    @Override
+    public CompletionStage<Status> deleteClient(String userId) {
+        HttpUrl url = baseUrl.newBuilder()
+                .addPathSegment("api")
+                .addPathSegment("wireguard")
+                .addPathSegment("client")
+                .addPathSegment(userId)
+                .build();
+
+        return delete(url, Status.class);
+    }
+
+    //TODO: Если без json можно сломать веб UI или без name
     @Override
     public CompletionStage<Status> renameClient(String userId, String name) {
         HttpUrl url = baseUrl.newBuilder()
@@ -330,6 +342,22 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         return execute(req.build(), responseTransformer);
     }
 
+    private <E> CompletionStage<E> delete(HttpUrl url, Class<E> aClass) {
+        return delete(url, new DefaultResponseTransformer<>(aClass, gson));
+    }
+
+    private <E> CompletionStage<E> delete(HttpUrl url, ResponseTransformer<E> responseTransformer) {
+        Request.Builder req = new Request.Builder()
+                .delete()
+                .url(url)
+                .addHeader("Content-Type", "application/json");
+        String encodedPath = url.encodedPath();
+        if (!encodedPath.equals("/api/session")) {
+            req.addHeader("Cookie", cookie);
+        }
+        return execute(req.build(), responseTransformer);
+    }
+
     //POST
     private <E> CompletionStage<E> post(HttpUrl url, JSONObject jsonBody, Class<E> aClass) {
         return post(url, jsonBody, new DefaultResponseTransformer<>(aClass, gson));
@@ -390,43 +418,29 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         throw new RuntimeException();
     }
 
-//    private File execute(ClassicHttpRequest request, String fileName, FileExtension fileExtension) {
-//        CloseableHttpClient httpClient = HttpClients
-//                .custom()
-//                .setKeepAliveStrategy(new DefaultConnectionKeepAliveStrategy())
-//                .setDefaultCookieStore(cookieStore)
-//                .useSystemProperties()
-//                .build();
-//
-//        try (CloseableHttpResponse response = httpClient.execute(request)) {
-//            try {
-//                int statusCode = response.getCode();
-//                HttpEntity entity = response.getEntity();
-//                String body = entity != null ? EntityUtils.toString(entity) : null;
-//                if (body == null) body = "{}";
-//
-//                logResponse(response, body);
-//
-//                if (statusCode == 200 && fileExtension.equals(FileExtension.CONFIG)) {
-//                    return writeToFile(body, fileName);
-//                } else if (response.getCode() == 200 && fileExtension.equals(FileExtension.QR_CODE)) {
-//                    File file = writeToFile(body, fileName);
-//                    return svgToPng(file, fileName);
-//                }
-//            } catch (ParseException e) {
-//                throw new RuntimeException(e);
-//            }
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        } finally {
-//            try {
-//                httpClient.close();
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//        }
-//        throw new RuntimeException();
-//    }
+    private CompletionStage<File> executeFile(Request request, String fileName, FileExtension fileExtension) {
+        final CompletableFuture<File> future = new CompletableFuture<>();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            ResponseBody responseBody = response.body();
+            String body = responseBody.string();
+            int statusCode = response.code();
+
+            if (statusCode == 200 && fileExtension.equals(FileExtension.CONFIG)) {
+                File file = writeToFile(body, fileName);
+                future.complete(file);
+                return future;
+            } else if (statusCode == 200 && fileExtension.equals(FileExtension.QR_CODE)) {
+                File file = writeToFile(body, fileName);
+                File png = svgToPng(file, fileName);
+                future.complete(png);
+                return future;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return future;
+    }
 
 
     private <E> CompletionStage<E> execute(Request request, ResponseTransformer<E> responseTransformer) {
