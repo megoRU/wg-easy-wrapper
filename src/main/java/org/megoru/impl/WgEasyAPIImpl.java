@@ -38,7 +38,6 @@ public class WgEasyAPIImpl implements WgEasyAPI {
 
     private final String password;
     private final boolean devMode;
-    private final OkHttpClient httpClient = new OkHttpClient();
     private String cookie = "default";
 
     protected WgEasyAPIImpl(String password, String domain, boolean devMode) {
@@ -420,6 +419,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
 
     private CompletionStage<File> executeFile(Request request, String fileName, FileExtension fileExtension) {
         final CompletableFuture<File> future = new CompletableFuture<>();
+        final OkHttpClient httpClient = new OkHttpClient();
 
         try (Response response = httpClient.newCall(request).execute()) {
             ResponseBody responseBody = response.body();
@@ -442,11 +442,10 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         return future;
     }
 
-
     private <E> CompletionStage<E> execute(Request request, ResponseTransformer<E> responseTransformer) {
         final CompletableFuture<E> future = new CompletableFuture<>();
+        final OkHttpClient httpClient = new OkHttpClient();
 
-//        System.out.println(request);
         try (Response response = httpClient.newCall(request).execute()) {
             int statusCode = response.code();
             String encodedPath = request.url().encodedPath();
@@ -460,6 +459,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
             String body;
             if (responseBody != null) {
                 body = responseBody.string();
+                responseBody.close();
             } else {
                 body = "{}";
             }
@@ -468,6 +468,8 @@ public class WgEasyAPIImpl implements WgEasyAPI {
 //            System.out.println(cookie);
 //            System.out.println(statusCode);
 //            System.out.println(response);
+
+            this.close(httpClient);
 
             switch (statusCode) {
                 case 200:
@@ -482,19 +484,19 @@ public class WgEasyAPIImpl implements WgEasyAPI {
                 case 401:
                 case 403: {
                     ErrorResponse result = gson.fromJson(body, ErrorResponse.class);
-                    Exception e = new UnsuccessfulHttpException(statusCode, result.getError());
+                    UnsuccessfulHttpException e = new UnsuccessfulHttpException(statusCode, result.getError());
                     future.completeExceptionally(e);
                     return future;
                 }
                 case 404: {
                     ErrorNotFound errorNotFound = gson.fromJson(body, ErrorNotFound.class);
-                    Exception e = new UnsuccessfulHttpException(statusCode, errorNotFound.getError());
+                    UnsuccessfulHttpException e = new UnsuccessfulHttpException(statusCode, errorNotFound.getError());
                     future.completeExceptionally(e);
                     return future;
                 }
                 case 429: {
                     ErrorResponseToMany result = gson.fromJson(body, ErrorResponseToMany.class);
-                    Exception e = new UnsuccessfulHttpException(statusCode, result.getMessage());
+                    UnsuccessfulHttpException e = new UnsuccessfulHttpException(statusCode, result.getMessage());
                     future.completeExceptionally(e);
                     return future;
                 }
@@ -506,13 +508,13 @@ public class WgEasyAPIImpl implements WgEasyAPI {
                             "  }\n" +
                             "}";
                     ErrorResponse result = gson.fromJson(body, ErrorResponse.class);
-                    Exception e = new UnsuccessfulHttpException(statusCode, result.getError());
+                    UnsuccessfulHttpException e = new UnsuccessfulHttpException(statusCode, result.getError());
                     future.completeExceptionally(e);
                     return future;
                 }
                 default:
                     ErrorResponse result = gson.fromJson(body, ErrorResponse.class);
-                    Exception e = new UnsuccessfulHttpException(statusCode, result.getError());
+                    UnsuccessfulHttpException e = new UnsuccessfulHttpException(statusCode, result.getError());
                     future.completeExceptionally(e);
                     return future;
             }
@@ -521,6 +523,11 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         }
 
         return future;
+    }
+
+    public void close(OkHttpClient httpClient) {
+        httpClient.dispatcher().executorService().shutdown();
+        httpClient.connectionPool().evictAll();
     }
 
     private void logResponse(ClassicHttpResponse response, String body) {
