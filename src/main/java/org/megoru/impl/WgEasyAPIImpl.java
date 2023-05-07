@@ -431,7 +431,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
                 String body = entity != null ? EntityUtils.toString(entity) : null;
                 if (body == null) body = "{}";
 
-                logResponse(response, body);
+                logResponse(response, "{}");
 
                 if (statusCode == 200 && fileExtension.equals(FileExtension.CONFIG)) {
                     return writeToFile(body, fileName);
@@ -527,8 +527,11 @@ public class WgEasyAPIImpl implements WgEasyAPI {
             return;
         }
 
+
         System.out.println("Response: " + response.getVersion());
         System.out.println(Arrays.toString(response.getHeaders()));
+
+        System.out.println("body " + body);
 
         String status = String.format(
                 "StatusCode: %s Reason: %s",
