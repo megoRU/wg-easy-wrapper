@@ -114,10 +114,7 @@ public interface WgEasyAPI {
         // Required
         private String password;
         private boolean devMode;
-        private String domain;
-        private int port;
-        private String ip;
-//        private boolean http2;
+        private String host;
 
         /**
          * This enables LOGS
@@ -127,26 +124,11 @@ public interface WgEasyAPI {
             return this;
         }
 
-        public Builder port(int port) {
-            this.port = port;
-            return this;
-        }
-
-        public Builder ip(String ip) {
-            this.ip = ip;
-            return this;
-        }
-
-//        public Builder enableHTTP2() {
-//            this.http2 = true;
-//            return this;
-//        }
-
         /**
-         * @param domain It`s domain address with out https://. Example: vpn.megoru.ru
+         * @param host It`s host address: https://vpn.megoru.ru or http://222.222.222.222:55222
          */
-        public Builder domain(String domain) {
-            this.domain = domain;
+        public Builder host(String host) {
+            this.host = host;
             return this;
         }
 
@@ -165,18 +147,10 @@ public interface WgEasyAPI {
             if (password == null)
                 throw new IllegalArgumentException("The provided password cannot be null!");
 
-            if (domain == null && ip == null)
-                throw new IllegalArgumentException("The provided ip and domain cannot be null!");
+            if (host == null)
+                throw new IllegalArgumentException("The provided host cannot be null!");
 
-            if (domain != null && ip == null)
-                return new WgEasyAPIImpl(password, domain, devMode);
-
-            if (port > 0)
-                return new WgEasyAPIImpl(password, ip, port, devMode);
-
-            throw new IllegalArgumentException("You a made error");
+            return new WgEasyAPIImpl(password, host, devMode);
         }
-
     }
-
 }

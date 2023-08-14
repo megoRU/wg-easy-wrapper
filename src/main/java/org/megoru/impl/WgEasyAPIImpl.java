@@ -50,39 +50,10 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     private final String password;
     private final boolean devMode;
 
-    protected WgEasyAPIImpl(String password, String domain, boolean devMode) {
+    protected WgEasyAPIImpl(String password, String host, boolean devMode) {
         this.devMode = devMode;
         this.password = password;
-
-        baseUrl = new HttpUrl.Builder()
-                .scheme("https")
-                .host(domain)
-                .build();
-
-        this.gson = new GsonBuilder().registerTypeAdapter(LocalDateTime.class, new JsonDeserializer<LocalDateTime>() {
-            private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
-
-            @Override
-            public LocalDateTime deserialize(JsonElement json, Type type, JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
-                String replace = json.getAsJsonPrimitive().getAsString().replaceAll(".[0-9]+Z", "");
-                TemporalAccessor parse = formatter.parse(replace);
-                return LocalDateTime.from(parse);
-            }
-
-        }).setPrettyPrinting().create();
-
-        setSession();
-    }
-
-    protected WgEasyAPIImpl(String password, String ip, int port, boolean devMode) {
-        this.devMode = devMode;
-        this.password = password;
-
-        baseUrl = new HttpUrl.Builder()
-                .scheme("http")
-                .host(ip)
-                .port(port)
-                .build();
+        baseUrl = HttpUrl.get(host);
 
         this.gson = new GsonBuilder().registerTypeAdapter(LocalDateTime.class, new JsonDeserializer<LocalDateTime>() {
             private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
