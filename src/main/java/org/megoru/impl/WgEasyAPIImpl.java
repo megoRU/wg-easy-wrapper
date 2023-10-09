@@ -24,8 +24,10 @@ import org.jetbrains.annotations.Nullable;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.megoru.entity.ErrorResponse;
-import org.megoru.entity.ErrorResponseToMany;
-import org.megoru.entity.api.*;
+import org.megoru.entity.api.Client;
+import org.megoru.entity.api.Create;
+import org.megoru.entity.api.Session;
+import org.megoru.entity.api.Status;
 import org.megoru.io.DefaultResponseTransformer;
 import org.megoru.io.ResponseTransformer;
 import org.megoru.io.UnsuccessfulHttpException;
@@ -426,78 +428,71 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Nullable
-    private <E> E execute(ClassicHttpRequest request, ResponseTransformer<E> responseTransformer) throws
-            UnsuccessfulHttpException {
-        CloseableHttpClient httpClient = HttpClients
-                .custom()
+    private <E> E execute(ClassicHttpRequest request, ResponseTransformer<E> responseTransformer) throws UnsuccessfulHttpException {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                int statusCode = response.getCode();
+                String body = getBodyFromEntity(response.getEntity());
+
+                logResponse(response, body);
+
+                return handleResponse(statusCode, body, responseTransformer);
+            } catch (ParseException | IOException e) {
+                throw new RuntimeException("Failed to execute HTTP request", e);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to close the HTTP client", e);
+        }
+    }
+
+    private CloseableHttpClient createHttpClient() {
+        return HttpClients.custom()
                 .setConnectionReuseStrategy(((requests, response, context) -> false))
                 .setDefaultCookieStore(cookieStore)
                 .useSystemProperties()
                 .build();
-        try {
-            try (CloseableHttpResponse response = httpClient.execute(request)) {
-                int statusCode = response.getCode();
-                HttpEntity entity = response.getEntity();
-                String body = entity != null ? EntityUtils.toString(entity) : null;
-                if (body == null) body = "{}";
+    }
 
-                logResponse(response, body);
+    private String getBodyFromEntity(HttpEntity entity) throws IOException, ParseException {
+        String body = entity != null ? EntityUtils.toString(entity) : "{}";
+        return body != null ? body : "{}";
+    }
 
-                switch (statusCode) {
-                    case 200:
-                    case 204: {
-                        if (body.equals("{}")) {
-                            body = "{\n" + "  \"status\": \"" + response.getCode() + "\"\n" + "}";
-                        }
-                        return responseTransformer.transform(body);
-                    }
-                    case 401:
-                    case 403: {
-                        ErrorResponse result = gson.fromJson(body, ErrorResponse.class);
-                        throw new UnsuccessfulHttpException(response.getCode(), result.getError());
-                    }
-                    case 404: {
-                        ErrorNotFound errorNotFound = gson.fromJson(body, ErrorNotFound.class);
-                        throw new UnsuccessfulHttpException(response.getCode(), errorNotFound.getError());
-                    }
-                    case 429: {
-                        ErrorResponseToMany result = gson.fromJson(body, ErrorResponseToMany.class);
-                        throw new UnsuccessfulHttpException(result.getStatusCode(), result.getMessage());
-                    }
-                    case 502: {
-                        body = "{\n" +
-                                "  \"error\": {\n" +
-                                "    \"code\": 502,\n" +
-                                "    \"message\": \"Bad Gateway\"\n" +
-                                "  }\n" +
-                                "}";
-                        ErrorResponse result = gson.fromJson(body, ErrorResponse.class);
-                        throw new UnsuccessfulHttpException(response.getCode(), result.getError());
-                    }
-                    default:
-                        ErrorResponse result = gson.fromJson(body, ErrorResponse.class);
-                        throw new UnsuccessfulHttpException(response.getCode(), result.getError());
-                }
-            } catch (ParseException e) {
-                throw new RuntimeException(e);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                httpClient.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+    private <E> E handleResponse(int statusCode, String body, ResponseTransformer<E> transformer) throws UnsuccessfulHttpException {
+        switch (statusCode) {
+            case 200:
+            case 204:
+                return transformOrUseDefaultBody(body, transformer, statusCode);
+            case 401:
+            case 403:
+            case 404:
+            case 429:
+                ErrorResponse errorResponse = gson.fromJson(body, ErrorResponse.class);
+                throw new UnsuccessfulHttpException(statusCode, errorResponse.getError());
+            case 502:
+                body = createDefault502Body();
+                // Fall through to default case since the handling is the same.
+            default:
+                ErrorResponse defaultErrorResponse = gson.fromJson(body, ErrorResponse.class);
+                throw new UnsuccessfulHttpException(statusCode, defaultErrorResponse.getError());
         }
-        throw new RuntimeException();
+    }
+
+    private <E> E transformOrUseDefaultBody(String body, ResponseTransformer<E> transformer, int statusCode) {
+        if (body.equals("{}")) {
+            body = "{ \"status\": \"" + statusCode + "\" }";
+        }
+        return transformer.transform(body);
+    }
+
+    private String createDefault502Body() {
+        return "{ \"error\": { \"code\": 502, \"message\": \"Bad Gateway\" } }";
     }
 
     private void logResponse(ClassicHttpResponse response, String body) {
         if (!devMode) {
             return;
         }
-
 
         System.out.println("Response: " + response.getVersion());
         System.out.println(Arrays.toString(response.getHeaders()));

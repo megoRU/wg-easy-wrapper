@@ -41,14 +41,14 @@
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
-            <version>4.10.0</version>
+            <version>5.0.0-alpha.11</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents.client5/httpclient5 -->
         <dependency>
             <groupId>org.apache.httpcomponents.client5</groupId>
             <artifactId>httpclient5</artifactId>
-            <version>5.2.1</version>
+            <version>5.3-alpha1</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.json/json -->
