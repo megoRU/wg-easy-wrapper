@@ -18,7 +18,7 @@ https://jitpack.io/#megoRU/wg-easy-wrapper
 <dependency>
     <groupId>com.github.megoRU</groupId>
     <artifactId>wg-easy-wrapper</artifactId>
-    <version>v2.6</version>
+    <version>v3.1</version>
 </dependency>
 ```
 
