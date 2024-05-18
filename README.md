@@ -31,7 +31,7 @@ public class Main {
     public static void main(String[] args) {
         WgEasyAPI api = new WgEasyAPI.Builder()
                 .password("password")
-                .domain("vpn.megoru.ru")
+                .host("http://222.222.222.222:55222")
                 .build();
         try {
             Clients[] client = api.getClients();
@@ -54,7 +54,7 @@ public class Main {
     public static void main(String[] args) {
         WgEasyAPI api = new WgEasyAPI.Builder()
                 .password("password")
-                .domain("vpn.megoru.ru")
+                .host("http://222.222.222.222:55222")
                 .build();
         try {
             Status status = api.disableClient("139987fc-266a-45bb-b3c4-3e1d8d2e180c");
@@ -72,7 +72,7 @@ public class Main {
     public static void main(String[] args) {
         WgEasyAPI api = new WgEasyAPI.Builder()
                 .password("password")
-                .domain("vpn.megoru.ru")
+                .host("http://222.222.222.222:55222")
                 .build();
         try {
             Create create = api.createClient("mego");
