@@ -14,28 +14,28 @@ public interface WgEasyAPI {
     /**
      * Get qr code config
      *
-     * @param userId   - it`s userId
+     * @param id   - it`s config id
      * @param fileName - file name without file extension
      * @return {@link File}
      */
-    File getQRCode(String userId, String fileName) throws UnsuccessfulHttpException;
+    File getQRCode(String id, String fileName) throws UnsuccessfulHttpException;
 
     /**
      * Get user config
      *
-     * @param userId   - it`s userId
+     * @param id       - it`s userId
      * @param fileName - file name without file extension
      * @return {@link File}
      */
-    File getConfig(String userId, String fileName) throws UnsuccessfulHttpException;
+    File getConfig(String id, String fileName) throws UnsuccessfulHttpException;
 
     /**
      * Create user
      *
-     * @param name - The username must be unique! If it is non-unique. When searching for userId, there will be 2 or more values.
+     * @param name - The username must be unique! If it is non-unique. When searching for id, there will be 2 or more values.
      * @return {@link Create}
      */
-    Create createClient(String name) throws UnsuccessfulHttpException;
+    Status createClient(String name) throws UnsuccessfulHttpException;
 
     /**
      * Update user peer address
@@ -48,26 +48,26 @@ public interface WgEasyAPI {
     /**
      * Disable user peer
      *
-     * @param userId - it`s userId
+     * @param id - it`s config id
      * @return {@link Status}
      */
-    Status disableClient(String userId) throws UnsuccessfulHttpException;
+    Status disableClient(String id) throws UnsuccessfulHttpException;
 
     /**
      * Enable user peer
      *
-     * @param userId - it`s userId
+     * @param id - it`s config id
      * @return {@link Status}
      */
-    Status enableClient(String userId) throws UnsuccessfulHttpException;
+    Status enableClient(String id) throws UnsuccessfulHttpException;
 
     /**
      * Delete user peer
      *
-     * @param userId - it`s userId
+     * @param id - it`s config id
      * @return {@link Status}
      */
-    Status deleteClient(String userId) throws UnsuccessfulHttpException;
+    Status deleteClient(String id) throws UnsuccessfulHttpException;
 
     /**
      * @param userId - it`s userId

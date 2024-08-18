@@ -2,13 +2,13 @@ package org.megoru.entity.api;
 
 public class Status {
 
-    private String status;
+    private boolean success;
 
-    public String getStatus() {
-        return status;
+    public boolean getStatus() {
+        return success;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public void setStatus(boolean status) {
+        this.success = status;
     }
 }
