@@ -25,7 +25,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.megoru.entity.ErrorResponse;
 import org.megoru.entity.api.Client;
-import org.megoru.entity.api.Create;
 import org.megoru.entity.api.Session;
 import org.megoru.entity.api.Status;
 import org.megoru.io.DefaultResponseTransformer;
@@ -106,7 +105,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
-    public Create createClient(String name) throws UnsuccessfulHttpException {
+    public Status createClient(String name) throws UnsuccessfulHttpException {
         HttpUrl url = baseUrl.newBuilder()
                 .addPathSegment("api")
                 .addPathSegment("wireguard")
@@ -121,7 +120,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
             e.printStackTrace();
         }
 
-        return post(url, json, new DefaultResponseTransformer<>(Create.class, gson));
+        return post(url, json, new DefaultResponseTransformer<>(Status.class, gson));
     }
 
     @Override
