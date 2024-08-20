@@ -8,6 +8,7 @@ import org.megoru.entity.api.Status;
 import org.megoru.io.UnsuccessfulHttpException;
 
 import java.io.File;
+import java.io.InputStream;
 
 public interface WgEasyAPI {
 
@@ -28,6 +29,14 @@ public interface WgEasyAPI {
      * @return {@link File}
      */
     File getConfig(String id, String fileName) throws UnsuccessfulHttpException;
+
+    /**
+     * Get user config
+     *
+     * @param id       - it`s userId
+     * @return {@link File}
+     */
+    InputStream getConfig(String id) throws UnsuccessfulHttpException;
 
     /**
      * Create user

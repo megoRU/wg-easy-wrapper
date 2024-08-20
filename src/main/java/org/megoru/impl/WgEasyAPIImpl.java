@@ -88,6 +88,23 @@ public class WgEasyAPIImpl implements WgEasyAPI {
     }
 
     @Override
+    public InputStream getConfig(String userId) {
+        //https://vpn.megoru.ru/api/wireguard/client/83e7877e-9eea-4695-823e-b729cddb5d8c/configuration
+        HttpUrl url = baseUrl.newBuilder()
+                .addPathSegment("api")
+                .addPathSegment("wireguard")
+                .addPathSegment("client")
+                .addPathSegment(userId)
+                .addPathSegment("configuration")
+                .build();
+
+        HttpGet request = new HttpGet(url.uri());
+        request.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+
+        return executeInputStream(request);
+    }
+
+    @Override
     public File getConfig(String userId, String fileName) {
         //https://vpn.megoru.ru/api/wireguard/client/83e7877e-9eea-4695-823e-b729cddb5d8c/configuration
         HttpUrl url = baseUrl.newBuilder()
@@ -319,6 +336,10 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         cookieStore.addCookie(cookies);
     }
 
+    private InputStream getInputStream(String text) {
+        return new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
+    }
+
     private File writeToFile(String text, String fileName) {
         try {
             int read;
@@ -388,6 +409,41 @@ public class WgEasyAPIImpl implements WgEasyAPI {
         }
     }
 
+    private InputStream executeInputStream(ClassicHttpRequest request) {
+        CloseableHttpClient httpClient = HttpClients
+                .custom()
+                .setConnectionReuseStrategy(((requests, response, context) -> false))
+                .setDefaultCookieStore(cookieStore)
+                .useSystemProperties()
+                .build();
+
+        try (CloseableHttpResponse response = httpClient.execute(request)) {
+            try {
+                int statusCode = response.getCode();
+                HttpEntity entity = response.getEntity();
+                String body = entity != null ? EntityUtils.toString(entity) : null;
+                if (body == null) body = "{}";
+
+                logResponse(response, "{}");
+
+                if (statusCode == 200) {
+                    return getInputStream(body);
+                }
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                httpClient.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        throw new RuntimeException();
+    }
+
     private File execute(ClassicHttpRequest request, String fileName, FileExtension fileExtension) {
         CloseableHttpClient httpClient = HttpClients
                 .custom()
@@ -405,9 +461,7 @@ public class WgEasyAPIImpl implements WgEasyAPI {
 
                 logResponse(response, "{}");
 
-                if (statusCode == 200 && fileExtension.equals(FileExtension.CONFIG)) {
-                    return writeToFile(body, fileName);
-                } else if (response.getCode() == 200 && fileExtension.equals(FileExtension.QR_CODE)) {
+                if (statusCode == 200 && fileExtension.equals(FileExtension.QR_CODE)) {
                     File file = writeToFile(body, fileName);
                     return svgToPng(file, fileName);
                 }

@@ -6,7 +6,7 @@
 
     <groupId>org.megoru</groupId>
     <artifactId>wg-easy-wrapper</artifactId>
-    <version>3.3</version>
+    <version>3.4</version>
 
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
