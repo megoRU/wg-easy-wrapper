@@ -6,7 +6,7 @@
 
     <groupId>org.megoru</groupId>
     <artifactId>wg-easy-wrapper</artifactId>
-    <version>3.5</version>
+    <version>3.5.1</version>
 
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
@@ -55,7 +55,7 @@
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
-            <version>20240303</version>
+            <version>20241224</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.jetbrains/annotations -->
