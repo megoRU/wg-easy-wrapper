@@ -1,13 +1,14 @@
 ## WG-EASY-WRAPPER
 
-An API wrapper for [wg-easy](https://github.com/WeeJeWel/wg-easy/) written in Java by @megoRU
+Java API wrapper for [wg-easy](https://github.com/WeeJeWel/wg-easy), created by [@megoRU](https://github.com/megoRU).
 
-### Maven
+---
 
-https://jitpack.io/#megoRU/wg-easy-wrapper
+## 📦 Installation (Maven)
+
+Add the JitPack repository and dependency:
 
 ```xml
-
 <repositories>
     <repository>
         <id>jitpack.io</id>
@@ -22,75 +23,62 @@ https://jitpack.io/#megoRU/wg-easy-wrapper
 </dependency>
 ```
 
-## Examples
+---
 
-### Get all Clients (peers)
+## 🚀 Examples
+
+### 👥 Get All Clients (Peers)
 
 ```java
-public class Main {
-    public static void main(String[] args) {
-        WgEasyAPI api = new WgEasyAPI.Builder()
-                .password("password")
-                .host("http://222.222.222.222:55222")
-                .build();
-        try {
-            Clients[] client = api.getClients();
+WgEasyAPI api = new WgEasyAPI.Builder()
+        .password("password")
+        .host("http://222.222.222.222:55222")
+        .build();
 
-            for (Clients client : client) {
-                System.out.println(client.getId()); //139987fc-266a-45bb-b3c4-3e1d8d2e180c
-                                                    // ...
-            }
-        } catch (UnsuccessfulHttpException e) {
-            System.out.println(e.getMessage());
-        }
-    }
+Clients[] clients = api.getClients();
+for (Clients client : clients) {
+    System.out.println(client.getId());
 }
 ```
 
-### Disable Client (peer)
+### ❌ Disable Client
 
 ```java
-public class Main {
-    public static void main(String[] args) {
-        WgEasyAPI api = new WgEasyAPI.Builder()
-                .password("password")
-                .host("http://222.222.222.222:55222")
-                .build();
-        try {
-            Status status = api.disableClient("139987fc-266a-45bb-b3c4-3e1d8d2e180c");
-        } catch (UnsuccessfulHttpException e) {
-            System.out.println(e.getMessage());
-        }
-    }
-}
+WgEasyAPI api = new WgEasyAPI.Builder()
+        .password("password")
+        .host("http://222.222.222.222:55222")
+        .build();
+
+Status status = api.disableClient("139987fc-266a-45bb-b3c4-3e1d8d2e180c");
 ```
 
-### Create Client (peer)
+### ➕ Create Client
 
 ```java
-public class Main {
-    public static void main(String[] args) {
-        WgEasyAPI api = new WgEasyAPI.Builder()
-                .password("password")
-                .host("http://222.222.222.222:55222")
-                .build();
-        try {
-            Create create = api.createClient("mego");
-            System.out.println(create.getCreatedAt()); //2023-01-12T18:20:12
-        } catch (UnsuccessfulHttpException e) {
-            System.out.println(e.getMessage());
-        }
-    }
-}
+WgEasyAPI api = new WgEasyAPI.Builder()
+        .password("password")
+        .host("http://222.222.222.222:55222")
+        .build();
+
+Create create = api.createClient("mego");
+System.out.println(create.getCreatedAt());
 ```
 
-## Dependencies
+---
 
-1. [Gson](https://github.com/google/gson)
-2. [Apache HttpClient](https://github.com/apache/httpcomponents-client)
-3. [JSON-java](https://github.com/stleary/JSON-java)
-4. [okhttp](https://github.com/square/okhttp)
+## 📚 Dependencies
 
-## Links
+* [Gson](https://github.com/google/gson)
+* [Apache HttpClient](https://github.com/apache/httpcomponents-client)
+* [JSON-java](https://github.com/stleary/JSON-java)
+* [OkHttp](https://github.com/square/okhttp)
 
-* [Contact me](https://megoru.ru)
+## LICENSE
+
+This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).
+
+---
+
+## 🔗 Links
+
+* 🌐 [Contact me](https://megoru.ru)
