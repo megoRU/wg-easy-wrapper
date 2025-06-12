@@ -1,6 +1,6 @@
 ## WG-EASY-WRAPPER
 
-Java API wrapper for [wg-easy](https://github.com/WeeJeWel/wg-easy), created by [@megoRU](https://github.com/megoRU).
+Java API wrapper for [wg-easy](https://github.com/wg-easy/wg-easy), created by [@megoRU](https://github.com/megoRU).
 
 ---
 
