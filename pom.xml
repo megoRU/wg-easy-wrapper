@@ -6,7 +6,7 @@
 
     <groupId>org.megoru</groupId>
     <artifactId>wg-easy-wrapper</artifactId>
-    <version>3.5.2</version>
+    <version>3.5.3</version>
 
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
@@ -27,7 +27,7 @@
         <dependency>
             <groupId>tools.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>3.0.4</version>
+            <version>3.1.1</version>
         </dependency>
 
         <!-- Source: https://mvnrepository.com/artifact/com.google.code.gson/gson -->
@@ -58,11 +58,11 @@
             <version>20241224</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/org.jetbrains/annotations -->
+        <!-- Source: https://mvnrepository.com/artifact/org.jetbrains/annotations -->
         <dependency>
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
-            <version>26.0.1</version>
+            <version>26.1.0</version>
         </dependency>
     </dependencies>
 
@@ -95,7 +95,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.12.1</version>
+                <version>3.14.1</version>
                 <configuration>
                     <source>11</source>
                     <target>11</target>
