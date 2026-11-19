@@ -19,7 +19,7 @@ Add the JitPack repository and dependency:
 <dependency>
     <groupId>com.github.megoRU</groupId>
     <artifactId>wg-easy-wrapper</artifactId>
-    <version>3.5.4</version>
+    <version>3.5.5</version>
 </dependency>
 ```
 
